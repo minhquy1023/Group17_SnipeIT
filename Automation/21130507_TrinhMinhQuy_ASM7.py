@@ -111,7 +111,8 @@ def unique_name(label: str) -> str:
 
 
 def name_box(page: Page):
-    return page.get_by_role("textbox", name="name")
+    # exact=True: form Asset Model co them o "mfg_marketing_name" cung chua chu "name"
+    return page.get_by_role("textbox", name="name", exact=True)
 
 
 def type_select(page: Page):
@@ -184,6 +185,11 @@ def create_model(page: Page, created_models: list, name: str, category: str) -> 
 def search_current(page: Page, text: str):
     """Tim kiem text tren bang dang mo (khong tai lai trang), tra ve cac dong chua text."""
     box = page.get_by_role("searchbox", name="Search")
+    # Bang nho tu khoa: mo lai trang thi o Search co san tu khoa cu va bang tu tai ket qua
+    # cua tu khoa do. Neu trung text thi fill + Enter khong gui yeu cau moi, nen chi cho tai xong
+    if box.input_value() == text:
+        expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+        return page.get_by_role("row").filter(has_text=text)
     box.fill(text)
     # Bang tai du lieu qua API. Truoc khi ket qua cua LAN TIM NAY ve, bang hien tam
     # "No matching records found" hoac ket qua cua tu khoa cu (bang nho tu khoa bang
@@ -1548,3 +1554,26 @@ def test_supplier_30_sort_by_name(page: Page):
 def test_supplier_31_paging(page: Page):
     """[Supplier-31] Chuyen trang danh sach (mac dinh 20 dong moi trang)."""
     check_paging(page, SUP, None)
+
+
+# =====================================================================
+# 15. CATEGORY - SAP XEP VA CHUYEN TRANG (dung chung ham voi Supplier)
+# =====================================================================
+CAT = Module("Category", LIST_URL, MSG_CREATED, MSG_UPDATED, MSG_DELETED, MSG_UNIQUE, None)
+
+
+def test_category_29_sort_by_name(page: Page):
+    """[Category-29] Sap xep danh sach theo cot Name."""
+    check_sort_by_name(page, CAT)
+
+
+def test_category_30_paging(page: Page, created):
+    """[Category-30] Chuyen trang danh sach (mac dinh 20 dong moi trang)."""
+    # Pre-condition: danh sach co hon 20 danh muc. Demo co the chi con <= 20 nen tao them cho du 21
+    page.goto(LIST_URL)
+    expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+    expect(pagination_info(page)).to_contain_text(re.compile(r"of \d+ rows"))
+    total = int(re.search(r"of (\d+) rows", pagination_info(page).inner_text()).group(1))
+    for _ in range(21 - total):
+        create_category(page, created, unique_name("Paging"))
+    check_paging(page, CAT, None)
