@@ -1,3 +1,17 @@
 ~$*
 Thumbs.db
 desktop.ini
+
+# Moi truong Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Ket qua chay test ca nhan (bo vao file zip, khong commit)
+report_*.html
+log_*.txt
+results_*/
+test-results/
+
+# File boi canh cho Claude Code
+CLAUDE.md
