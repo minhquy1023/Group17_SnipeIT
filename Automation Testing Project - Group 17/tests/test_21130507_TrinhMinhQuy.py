@@ -114,7 +114,7 @@ def success_alert(page: Page):
 
 
 def error_alert(page: Page):
-    return page.locator("div.alert.alert-danger")
+    return page.locator("div.alert.alert-danger:not(.js-saved-searches-save-error)")
 
 
 def no_records(page: Page):
