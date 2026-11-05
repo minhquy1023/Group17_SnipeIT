@@ -18,6 +18,7 @@ def logged_in(page: Page):
     """Pre-condition chung cua moi test case: dang nhap thanh cong bang admin/password.
     autouse=True: tu chay truoc MOI test, khong can ghi ten fixture vao ham test."""
     page.set_default_timeout(15_000)  # moi thao tac (click, fill...) cho toi da 15 giay
+    page.set_default_navigation_timeout(30_000)  # moi lan tai trang (goto, wait_for_url...) cho toi da 30 giay
     page.goto(f"{BASE_URL}/login")
     page.get_by_role("textbox", name="Username").fill(USERNAME)
     page.get_by_role("textbox", name="Password").fill(PASSWORD)
