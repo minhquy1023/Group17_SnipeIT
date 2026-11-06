@@ -28,6 +28,7 @@ import base64
 import html
 import re
 import time
+import unicodedata
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -828,9 +829,13 @@ def first_column_names(page: Page) -> list[str]:
 
 
 def sort_key(text: str) -> str:
-    # Chi so sanh chu va so, khong phan biet hoa/thuong: cach sap xep ky tu dac biet
-    # cua co so du lieu co the khac Python, so sanh ca ky tu dac biet de bao sai
-    return re.sub(r"[^0-9a-z]", "", text.casefold())
+    # Khong phan biet hoa/thuong va dau (co so du lieu so sanh khong phan biet dau: e = é);
+    # moi cum ky tu dac biet (dau cau, khoang trang) thay bang 1 khoang trang: co so du lieu xep
+    # ky tu dac biet TRUOC chu va so (vd "Smith, L..." < "Smitham"), nhung thu tu giua cac ky tu
+    # dac biet voi nhau co the khac Python, nen coi chung nhu nhau
+    text = unicodedata.normalize("NFKD", text.casefold())
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return re.sub(r"[^0-9a-z]+", " ", text).strip()
 
 
 def check_sort_by_name(page: Page, mod: Module) -> None:
