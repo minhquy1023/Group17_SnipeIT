@@ -128,9 +128,10 @@ def visible_text(page: Page, text: str):
 
 
 def wait_page_ready(page: Page) -> None:
-    """Cho trang khoi tao xong, ke ca request nen livewire tu gui sau khi load.
-    Neu dien form khi request nen chua xong, request nen co the ghi de session
-    va lam mat thong bao flash (quan sat 06/11, xem Q&A so 4)."""
+    """Cho trang khoi tao xong, ke ca request nen trang tu gui sau khi load
+    (/livewire/update, /api/v1/saved-searches). Neu dien form hoac chuyen trang khi
+    request nen chua xong, request nen co the ghi de session va lam mat thong bao
+    flash (quan sat 06/11, xem Q&A so 4)."""
     page.wait_for_load_state("networkidle")
 
 
@@ -916,6 +917,7 @@ def check_delete_unused(page: Page, mod: Module, cleanup: list) -> None:
     expect(success_alert(page)).to_contain_text(mod.deleted)
     find_in_list(page, name, mod.url)
     expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
+    wait_page_ready(page)  # cho request nen cua trang danh sach (saved-searches, livewire) xong roi moi mo trang khac
 
     page.goto(detail_url)
     expect(error_alert(page)).to_contain_text(mod.not_found)
