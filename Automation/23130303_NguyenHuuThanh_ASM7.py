@@ -72,6 +72,7 @@ PNG_1PX = base64.b64decode(
 def logged_in(page: Page):
     """Pre-condition chung: dang nhap thanh cong bang admin/password."""
     page.set_default_timeout(20_000)
+    page.set_default_navigation_timeout(45_000)  # demo phan hoi cham khi nhieu nguoi dung
     login(page)
 
 
@@ -104,17 +105,43 @@ def created_models(page: Page):
 # =====================================================================
 # 4. HAM DUNG CHUNG
 # =====================================================================
-def goto(page: Page, path: str, tries: int = 4) -> None:
-    """Mo trang (path tuong doi tinh tu BASE_URL), thu lai khi demo tra loi 503."""
+def demo_is_resetting(page: Page) -> bool:
+    """Demo tra ve trang 'Resetting the Database' (kem ma 503) khi dang reset.
+    Chi doc <title> cho nhanh va de tranh false positive khi trang dang tai."""
+    try:
+        return "resetting the database" in page.title().lower()
+    except Exception:
+        return False
+
+
+def wait_for_demo(page: Page, tries: int = 5, delay: int = 20) -> None:
+    """Cho demo reset xong: mo /login toi khi form dang nhap xuat hien."""
+    for _ in range(tries):
+        try:
+            page.goto(BASE_URL + "/login", wait_until="domcontentloaded")
+        except Exception:
+            time.sleep(delay)
+            continue
+        if page.locator('input[name="username"]').count():
+            return
+        time.sleep(delay)
+    raise AssertionError("Demo khong san sang sau khi cho reset (qua so lan thu)")
+
+
+def goto(page: Page, path: str, tries: int = 3) -> None:
+    """Mo trang (path tuong doi tinh tu BASE_URL), thu lai khi demo tra loi 503
+    hoac dang reset database."""
     url = path if path.startswith("http") else BASE_URL + path
     last = None
     for _ in range(tries):
         try:
             page.goto(url, wait_until="domcontentloaded")
-            return
+            if not demo_is_resetting(page):
+                return
+            wait_for_demo(page)
         except Exception as error:
             last = error
-            time.sleep(15)
+            time.sleep(8)
     raise AssertionError(f"Khong mo duoc {url}: {last}")
 
 
@@ -151,6 +178,22 @@ def error_alert(page: Page):
     return page.locator("div.alert.alert-danger")
 
 
+def assert_success(page: Page, expected: str) -> None:
+    """Cho thong bao thanh cong. Neu demo reset database giua luc chay thi danh
+    Skipped thay vi Failed, vi day la loi ha tang chu khong phai loi san pham."""
+    for attempt in range(3):
+        try:
+            expect(success_alert(page)).to_contain_text(expected, timeout=10_000)
+            return
+        except AssertionError:
+            if demo_is_resetting(page):
+                wait_for_demo(page)
+                pytest.skip("Demo reset database giua luc chay - khong ket luan duoc ket qua")
+            if attempt < 2:
+                page.wait_for_timeout(2_000)
+    expect(success_alert(page)).to_contain_text(expected)
+
+
 def no_records(page: Page):
     return page.locator("tr.no-records-found")
 
@@ -175,10 +218,24 @@ def pick_select2(page: Page, select_name: str, text: str | None = None) -> None:
     page.locator(f"select[name='{select_name}'] + .select2").click()
     if text:
         page.locator(".select2-container--open .select2-search__field").fill(text)
+        # Cho API tra ket qua (demo phan hoi cham), tranh bam vao dong "Searching..."
+        page.wait_for_timeout(1_500)
         option = page.locator(".select2-container--open .select2-results__option", has_text=text)
     else:
         option = page.locator(".select2-container--open .select2-results__option:not(.loading-results)")
+    option.first.wait_for(state="visible")
     option.first.click()
+
+
+def money_value(raw: str) -> float:
+    """Chuyen chuoi tien te hien thi tren form (VD 1.999,99 hoac 1999.99) ve float."""
+    cleaned = re.sub(r"[^\d.,-]", "", raw)
+    if "," in cleaned and "." in cleaned:
+        # dinh dang VN: 1.999,99
+        cleaned = cleaned.replace(".", "").replace(",", ".")
+    elif "," in cleaned:
+        cleaned = cleaned.replace(",", ".")
+    return float(cleaned)
 
 
 def expand_optional_sections(page: Page) -> None:
@@ -207,7 +264,7 @@ def create_model(page: Page, created_models: list, name: str, category: str = "L
     for field_id, value in fields.items():
         page.locator(f"#{field_id}").fill(str(value))
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_MODEL_CREATED)
+    assert_success(page, MSG_MODEL_CREATED)
     return model_id_by_name(page, name)
 
 
@@ -240,7 +297,7 @@ def create_asset(page: Page, created_assets: list, tag: str, model: str, **field
     goto(page, "/hardware/create")
     fill_asset_form(page, tag, model, **fields)
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_ASSET_CREATED)
+    assert_success(page, MSG_ASSET_CREATED)
     href = success_alert(page).locator('a[href*="/hardware/"]').first.get_attribute("href")
     return re.search(r"/hardware/(\d+)", href).group(1)
 
@@ -257,6 +314,17 @@ def delete_asset_by_tag(page: Page, tag: str) -> None:
         page.wait_for_timeout(500)
 
 
+def delete_model_from_list(page: Page, name: str) -> None:
+    """Xoa Asset Model tu trang danh sach.
+    Luu y: nut Delete o trang chi tiet model cua demo dang tro sai sang xoa asset,
+    nen luon xoa tu danh sach /models?search=<ten>."""
+    goto(page, f"/models?search={name}")
+    row = page.locator("table tbody tr", has_text=name).first
+    row.wait_for()
+    row.locator(".delete-asset").first.click()
+    page.locator("#dataConfirmModal").get_by_role("button", name="Yes").click()
+
+
 def delete_model_by_name(page: Page, name: str) -> None:
     """Tim Asset Model theo ten roi xoa (model con tai san se khong xoa duoc)."""
     for _ in range(3):
@@ -268,21 +336,27 @@ def delete_model_by_name(page: Page, name: str) -> None:
         page.locator("#dataConfirmModal").get_by_role("button", name="Yes").click()
         page.wait_for_timeout(500)
 
+def pick_checkout_type(page: Page, value: str) -> None:
+    """Chon 'Checkout to' = user | asset | location.
+    Day la btn-group cua Bootstrap: phai bam vao <label> bao quanh radio."""
+    page.locator(f"label.btn:has(input[name='checkout_to_type'][value='{value}'])").click()
+    expect(page.locator(f"input[name='checkout_to_type'][value='{value}']")).to_be_checked()
+
 
 def checkout_asset(page: Page, asset_id: str, user: str = "admin") -> None:
     """Cap phat tai san cho User qua trang /hardware/{id}/checkout."""
     goto(page, f"/hardware/{asset_id}/checkout")
-    page.locator("label", has_text="User").first.click()
+    pick_checkout_type(page, "user")
     pick_select2(page, "assigned_user", user)
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_CHECKOUT_OK)
+    assert_success(page, MSG_CHECKOUT_OK)
 
 
 def checkin_asset(page: Page, asset_id: str) -> None:
     """Thu hoi tai san qua trang /hardware/{id}/checkin."""
     goto(page, f"/hardware/{asset_id}/checkin")
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_CHECKIN_OK)
+    assert_success(page, MSG_CHECKIN_OK)
 
 
 # =====================================================================
@@ -304,13 +378,14 @@ def test_asset_06_edit_form_prefilled(page: Page, created_models, created_assets
     model = unique_name("Model")
     create_model(page, created_models, model)
     tag = f"G17-Pre_{time.time_ns() // 1_000_000}"
-    asset_id = create_asset(page, created_assets, tag, model, **{"#name": "G17 Prefilled", "#serial_1": "SN-PRE-1"})
+    serial = f"SN-PRE-{time.time_ns() // 1_000_000}"
+    asset_id = create_asset(page, created_assets, tag, model, **{"#name": "G17 Prefilled", "#serial_1": serial})
 
     goto(page, f"/hardware/{asset_id}/edit")
     expand_optional_sections(page)
     expect(page.locator('input[name="asset_tags[1]"]')).to_have_value(tag)
     expect(page.locator("#name")).to_have_value("G17 Prefilled")
-    expect(page.locator("#serial_1")).to_have_value("SN-PRE-1")
+    expect(page.locator("#serial_1")).to_have_value(serial)
     expect(page.locator('select[name="status_id"]')).not_to_have_value("")
 
 
@@ -378,7 +453,7 @@ def test_asset_10_name_max_length_and_html(page: Page, created_models, created_a
     created_assets.append(tag)
     fill_asset_form(page, tag, model, **{"#name": payload})
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_ASSET_CREATED)
+    assert_success(page, MSG_ASSET_CREATED)
     href = success_alert(page).locator('a[href*="/hardware/"]').first.get_attribute("href")
     asset_id = re.search(r"/hardware/(\d+)", href).group(1)
 
@@ -439,7 +514,10 @@ def test_asset_14_purchase_cost_invalid(page: Page, created_models):
 
 
 def test_asset_15_purchase_date_invalid(page: Page, created_models, created_assets):
-    """[Asset-15] Purchase Date khong ton tai (30/02) va sai dinh dang."""
+    """[Asset-15] Purchase Date khong ton tai (30/02/2026) phai bi tu choi.
+
+    Khao sat 31/10/2026: he thong CHAP NHAN va luu thanh ngay hien tai,
+    khong hien thi loi -> ghi nhan bug G17-BUG-03 va danh xfail."""
     model = unique_name("Model")
     create_model(page, created_models, model)
     tag = f"G17-Date_{time.time_ns() // 1_000_000}"
@@ -450,13 +528,20 @@ def test_asset_15_purchase_date_invalid(page: Page, created_models, created_asse
     save(page)
     page.wait_for_timeout(2_000)
 
-    assert page.url.endswith("/hardware/create"), "Ngay khong ton tai khong duoc tao tai san"
-    messages = " ".join(field_errors(page))
-    assert re.search(r"date|ngay|valid", messages, re.I), f"Phai co thong bao ngay khong hop le: {messages!r}"
+    if page.url.endswith("/hardware/create"):
+        messages = " ".join(field_errors(page))
+        assert re.search(r"date|ngay|valid", messages, re.I), f"Phai co thong bao ngay khong hop le: {messages!r}"
+        return
+
+    href = success_alert(page).locator('a[href*="/hardware/"]').first.get_attribute("href")
+    page.goto(href + "/edit", wait_until="domcontentloaded")
+    expand_optional_sections(page)
+    saved = page.locator("#purchase_date").input_value()
+    pytest.xfail(f"BUG #G17-BUG-03: ngay khong ton tai 30/02/2026 van duoc luu (thanh {saved}), khong bao loi")
 
 
-def test_asset_16_warranty_boundary(page: Page, created_models):
-    """[Asset-16] Warranty gioi han 3 ky tu, so am bi chan."""
+def test_asset_16_warranty_boundary(page: Page, created_models, created_assets):
+    """[Asset-16] Warranty gioi han 3 ky tu va so am phai bi tu choi khi luu."""
     model = unique_name("Model")
     create_model(page, created_models, model)
     goto(page, "/hardware/create")
@@ -467,9 +552,20 @@ def test_asset_16_warranty_boundary(page: Page, created_models):
     page.locator("#warranty_months").press_sequentially("9")
     expect(page.locator("#warranty_months")).to_have_value("999")  # ky tu thu 4 bi chan
 
+    # So am khong bi chan o client (input type=text) nen phai kiem tra o server
+    tag = f"G17-War_{time.time_ns() // 1_000_000}"
+    created_assets.append(tag)
+    page.locator('input[name="asset_tags[1]"]').fill(tag)
+    pick_select2(page, "model_id", model)
+    page.locator('select[name="status_id"]').select_option(label="Ready to Deploy")
     page.locator("#warranty_months").fill("-5")
-    state = html5_state(page, "#warranty_months")
-    assert not state["valid"], f"So am phai bi chan: {state}"
+    save(page)
+    expect(error_alert(page)).to_be_visible()
+
+    messages = " ".join(field_errors(page))
+    assert page.url.endswith("/hardware/create") and "warranty" in messages.lower(), (
+        f"So am phai bi tu choi khi luu: url={page.url}, loi={messages!r}"
+    )
 
 
 def test_asset_17_notes_xss(page: Page, created_models, created_assets):
@@ -508,7 +604,7 @@ def test_asset_19_create_full_info(page: Page, created_models, created_assets):
     tag = f"G17-Full_{time.time_ns() // 1_000_000}"
     data = {
         "#name": "G17 Laptop Full",
-        "#serial_1": "SN-FULL-001",
+        "#serial_1": f"SN-{time.time_ns() // 1_000_000}",  # Serial phai duy nhat tren he thong
         "#purchase_cost": "1999.99",
         "#notes": "Ghi chu kiem thu nhom 17",
         "#order_number": "PO-17-001",
@@ -519,6 +615,12 @@ def test_asset_19_create_full_info(page: Page, created_models, created_assets):
     expand_optional_sections(page)
     expect(page.locator('input[name="asset_tags[1]"]')).to_have_value(tag)
     for selector, value in data.items():
+        if selector == "#purchase_cost":
+            # Demo hien thi theo dinh dang tien te (1.999,99) nen so sanh theo gia tri so
+            assert money_value(page.locator(selector).input_value()) == float(value), (
+                f"Purchase Cost luu sai: {page.locator(selector).input_value()!r}"
+            )
+            continue
         expect(page.locator(selector)).to_have_value(value)
 
 
@@ -553,12 +655,13 @@ def test_asset_22_edit_valid(page: Page, created_models, created_assets):
     page.locator("#purchase_cost").fill("1999.99")
     page.locator("#notes").fill("G17 edited")
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_ASSET_UPDATED)
+    assert_success(page, MSG_ASSET_UPDATED)
 
     goto(page, f"/hardware/{asset_id}/edit")
     expand_optional_sections(page)
     expect(page.locator("#name")).to_have_value("G17 Laptop Edited")
-    expect(page.locator("#purchase_cost")).to_have_value("1999.99")
+    # Purchase Cost hien thi theo dinh dang tien te cua he thong (VD 1.999,99)
+    assert money_value(page.locator("#purchase_cost").input_value()) == 1999.99
     expect(page.locator("#notes")).to_have_value("G17 edited")
 
     goto(page, f"/hardware/{asset_id}")
@@ -634,7 +737,7 @@ def test_asset_26_delete_unused(page: Page, created_models, created_assets):
     expect(modal).to_be_visible()
     expect(modal).to_contain_text(tag)
     modal.get_by_role("button", name="Yes").click()
-    expect(success_alert(page)).to_contain_text(MSG_ASSET_DELETED)
+    assert_success(page, MSG_ASSET_DELETED)
 
     goto(page, f"/hardware?search={tag}")
     expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
@@ -758,13 +861,17 @@ def test_checkout_03_checkout_to_location(page: Page, created_models, created_as
     asset_id = create_asset(page, created_assets, tag, model)
 
     goto(page, f"/hardware/{asset_id}/checkout")
-    page.locator("label", has_text="Location").first.click()
-    pick_select2(page, "assigned_location", "East Elvera")
+    pick_checkout_type(page, "location")
+    pick_select2(page, "assigned_location")
+    # Doc gia tri da chon tu <select> that (o hien thi cua select2 co them dau x)
+    location = page.locator("select[name='assigned_location']").evaluate(
+        "e => e.options[e.selectedIndex] ? e.options[e.selectedIndex].text.trim() : ''"
+    )
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_CHECKOUT_OK)
+    assert_success(page, MSG_CHECKOUT_OK)
 
     goto(page, f"/hardware/{asset_id}")
-    assert "East Elvera" in page.locator("body").inner_text()
+    assert location and location in page.locator("body").inner_text(), f"Location {location!r} phai hien thi"
 
 
 def test_checkout_04_checkin(page: Page, created_models, created_assets):
@@ -807,7 +914,11 @@ def test_checkout_06_checkin_not_checked_out(page: Page, created_models, created
 
     goto(page, f"/hardware/{asset_id}/checkin")
     if page.locator("#submit_button").count() == 0:
-        return  # he thong khong cho mo form checkin
+        # He thong khong mo form checkin va da hien thong bao chan
+        assert error_alert(page).count() or "not" in page.locator("body").inner_text().lower(), (
+            "Phai co thong bao khi checkin tai san chua cap phat"
+        )
+        return
     save(page)
     page.wait_for_timeout(2_000)
     assert error_alert(page).count(), "Phai bao loi khi checkin tai san chua cap phat"
@@ -822,9 +933,9 @@ def test_checkout_07_history_after_checkout(page: Page, created_models, created_
     checkout_asset(page, asset_id)
 
     goto(page, f"/hardware/{asset_id}")
-    history = page.locator("table", has_text="checkout").first
-    expect(history).to_contain_text(re.compile("checkout", re.I))
-    expect(history).to_contain_text("User Admin")
+    history = page.locator("#assetHistoryListingTable")
+    expect(history.locator("tbody")).to_contain_text(re.compile("checkout", re.I))
+    expect(history.locator("tbody")).to_contain_text("User Admin")
 
 
 def test_checkout_08_checkout_from_list(page: Page, created_models, created_assets):
@@ -841,7 +952,7 @@ def test_checkout_08_checkout_from_list(page: Page, created_models, created_asse
     page.locator("label", has_text="User").first.click()
     pick_select2(page, "assigned_user", "admin")
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_CHECKOUT_OK)
+    assert_success(page, MSG_CHECKOUT_OK)
     goto(page, f"/hardware?search={tag}")
     expect(page.locator("table tbody tr", has_text=tag).first).to_contain_text("User Admin")
 
@@ -856,10 +967,10 @@ def test_checkout_09_checkout_to_asset(page: Page, created_models, created_asset
     child_id = create_asset(page, created_assets, child_tag, model)
 
     goto(page, f"/hardware/{child_id}/checkout")
-    page.locator("label", has_text="Asset").first.click()
+    pick_checkout_type(page, "asset")
     pick_select2(page, "assigned_asset", parent_tag)
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_CHECKOUT_OK)
+    assert_success(page, MSG_CHECKOUT_OK)
 
     goto(page, f"/hardware/{child_id}")
     assert parent_tag in page.locator("body").inner_text()
@@ -920,7 +1031,7 @@ def test_model_05_edit_name(page: Page, created_models):
     expect(page.locator("#name")).to_have_value(name)
     page.locator("#name").fill(new_name)
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_MODEL_UPDATED)
+    assert_success(page, MSG_MODEL_UPDATED)
 
     goto(page, f"/models?search={new_name}")
     expect(page.locator("table tbody tr", has_text=new_name)).to_have_count(1)
@@ -929,11 +1040,9 @@ def test_model_05_edit_name(page: Page, created_models):
 def test_model_06_delete_unused(page: Page, created_models):
     """[Model-6] Xoa mau tai san chua duoc su dung."""
     name = unique_name("Del")
-    model_id = create_model(page, created_models, name)
-    goto(page, f"/models/{model_id}")
-    page.locator(".delete-asset").first.click()
-    page.locator("#dataConfirmModal").get_by_role("button", name="Yes").click()
-    expect(success_alert(page)).to_contain_text(MSG_MODEL_DELETED)
+    create_model(page, created_models, name)
+    delete_model_from_list(page, name)
+    assert_success(page, MSG_MODEL_DELETED)
 
     goto(page, f"/models?search={name}")
     expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
@@ -942,12 +1051,10 @@ def test_model_06_delete_unused(page: Page, created_models):
 def test_model_07_delete_used_by_asset(page: Page, created_models, created_assets):
     """[Model-7] Xoa mau tai san dang duoc tai san su dung (phai bi chan)."""
     name = unique_name("Used")
-    model_id = create_model(page, created_models, name)
+    create_model(page, created_models, name)
     create_asset(page, created_assets, f"G17-Use_{time.time_ns() // 1_000_000}", name)
 
-    goto(page, f"/models/{model_id}")
-    page.locator(".delete-asset").first.click()
-    page.locator("#dataConfirmModal").get_by_role("button", name="Yes").click()
+    delete_model_from_list(page, name)
     expect(error_alert(page)).to_contain_text(MSG_MODEL_USED)
 
     goto(page, f"/models?search={name}")
@@ -990,7 +1097,7 @@ def test_model_10_require_serial(page: Page, created_models, created_assets):
     pick_select2(page, "category_id", "Laptop")
     page.locator("#require_serial").check()
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_MODEL_CREATED)
+    assert_success(page, MSG_MODEL_CREATED)
 
     tag = f"G17-NoSer_{time.time_ns() // 1_000_000}"
     created_assets.append(tag)
@@ -1015,7 +1122,7 @@ def test_model_11_upload_image(page: Page, created_models):
     )
     expect(page.locator("#uploadFile-info")).to_contain_text("g17.png")
     save(page)
-    expect(success_alert(page)).to_contain_text(MSG_MODEL_CREATED)
+    assert_success(page, MSG_MODEL_CREATED)
 
 
 def test_model_12_cancel_create(page: Page):

@@ -7,7 +7,7 @@
 | Thông tin | Chi tiết |
 |---|---|
 | Hệ thống | Snipe-IT – phần mềm mã nguồn mở quản lý tài sản CNTT |
-| Phiên bản | v8.8.1 (ASM6, test ngày 22/10/2026); v8.8.3 build 26143 (ASM7, từ ngày 28/10/2026) |
+| Phiên bản | v8.8.1 (ASM6, test ngày 22/10/2026); v8.8.3 build 26143 (ASM7, ASM8, từ ngày 28/10/2026) |
 | Website test | https://demo.snipeitapp.com |
 | Tài liệu tham chiếu | https://snipe-it.readme.io |
 | Trình duyệt | Google Chrome (bản mới nhất), Firefox; Chromium (khi chạy automation) |
@@ -37,34 +37,58 @@
 
 | Thư mục / File | Nội dung |
 |---|---|
+| `Automation Testing Project - Group 17/` | Project automation đã tích hợp script của các thành viên thành một Test Suite (ASM8). Hướng dẫn cài đặt, cấu hình và chạy: xem `README.md` trong thư mục này |
+| `Test Report - Group 17/` | Báo cáo kết quả chạy toàn bộ Test Suite (HTML, XML) và bản tóm tắt kết quả |
+| `Envidence - Group17/` | Minh chứng quá trình thực thi: log, ảnh chụp, trace của các test hỏng |
+| `Automation/MaSV_HoTen_ASM7.py` | Script automation 3 chức năng của từng thành viên, bản nộp ASM7 (giữ nguyên để đối chiếu) |
 | `TestCases/Group17_MaSV_HoTen.xlsx` | Test design và test case 3 chức năng của từng thành viên |
-| `TestCases/Group17_SnipeIT.xlsx` | Tài liệu test case đã gộp của cả nhóm (nhóm trưởng cập nhật) |
-| `Automation/MaSV_HoTen_ASM7.*` | Script automation 3 chức năng của từng thành viên (ASM7) |
+| `TestCases/Group17_SnipeIT.xlsx` | Tài liệu test case gộp của cả nhóm (đang cập nhật) |
 | `AutomationPlan/` | Kế hoạch automation test (đang cập nhật) |
 
-## Chạy script automation
+## Chạy Test Suite của nhóm
 
-Yêu cầu: Python 3.12 trở lên. Cách chạy chi tiết của từng script được ghi ở đầu mỗi file.
+Yêu cầu: Python 3.12 trở lên. Mở PowerShell tại thư mục gốc repo:
 
-```
-pip install pytest-playwright
+```powershell
+cd "Automation Testing Project - Group 17"
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 playwright install chromium
-python -m pytest Automation/21130507_TrinhMinhQuy_ASM7.py -v
+
+# Toàn bộ Test Suite
+python -m pytest -v
+
+# Riêng phần của một thành viên
+python -m pytest tests/test_21130507_TrinhMinhQuy.py -v
 ```
 
-Thêm `--headed --slowmo 500` để xem trình duyệt thao tác. Mỗi hàm test ứng với một test case trong file Excel (ví dụ `test_category_03_...` là [Category-3]). Mọi dữ liệu test có tiền tố `G17_` và được script tự xóa sau khi chạy.
+Tên thư mục có khoảng trắng nên luôn đặt trong ngoặc kép. Các tùy chọn xuất báo cáo, chạy có trình duyệt và chạy lại test hỏng được hướng dẫn trong `Automation Testing Project - Group 17/README.md`. Mỗi hàm test ứng với một test case trong file Excel của thành viên (ví dụ `test_category_03_...` là [Category-3]). Dữ liệu test có tiền tố `G17_` và được script tự xóa sau khi chạy.
+
+## Trạng thái tích hợp ASM8
+
+| Thành viên | File trong `tests/` | Số test | Pull Request |
+|---|---|---|---|
+| Trịnh Minh Quý | `test_21130507_TrinhMinhQuy.py` | 86 | #20, #21, #25 |
+| Tạ Văn Huy | `test_23130138_TaVanHuy.py` | 74 | #23 |
+| Bùi Trọng Linh | `test_21130420_BuiTrongLinh.py` | 66 | #22 |
+| Nguyễn Hữu Thanh | `test_23130303_NguyenHuuThanh.py` | 46 | #27 |
+| Phạm Hữu Đạt | Chưa tích hợp (script ASM7 có trong `Automation/`) | – | – |
+| **Tổng** | | **272** | |
 
 ## Quy trình làm việc với Git
 
 - `main`: bản hoàn chỉnh của đồ án
 - `dev`: bản tích hợp của nhóm
-- Mỗi thành viên làm trên nhánh riêng `MaSV-HoTen` (tạo từ `dev`), tạo Pull Request vào `dev`, nhóm trưởng duyệt và merge. Sau đó nhóm trưởng merge `dev` vào `main`.
+- Mỗi thành viên làm trên nhánh riêng `MaSV-HoTen` (tạo từ `dev`), tạo Pull Request vào `dev`, nhóm trưởng duyệt code và merge. Sau đó nhóm trưởng merge `dev` vào `main`.
+- `main` và `dev` được bảo vệ bằng ruleset: mọi thay đổi phải đi qua Pull Request.
 - Tiêu đề Pull Request: `[ASMx] Họ tên – Nội dung`. Commit message bằng tiếng Anh, bắt đầu bằng động từ (Add, Update, Fix).
-- Tên file không dấu, không khoảng trắng. Mỗi thành viên chỉ sửa file của mình.
+- Tên file không dấu, không khoảng trắng. Mỗi thành viên chỉ sửa file của mình; `conftest.py`, `helpers.py`, `pytest.ini`, `requirements.txt` do nhóm trưởng quản lý.
 
 ## Tiến độ
 
 | Tuần | Nội dung | Trạng thái |
 |---|---|---|
 | ASM6 (19/10 – 23/10) | Test design 3 chức năng, test case chức năng đầu tiên của mỗi thành viên | Hoàn thành |
-| ASM7 (24/10 – 30/10) | Script automation 3 chức năng của mỗi thành viên | Đang thực hiện |
+| ASM7 (24/10 – 30/10) | Script automation 3 chức năng của mỗi thành viên | Hoàn thành |
+| ASM8 (31/10 – 06/11) | Tích hợp script thành một project, chạy toàn bộ Test Suite, Test Report | Tích hợp 4/5 thành viên; Test Report cập nhật trong `Test Report - Group 17/` |
