@@ -25,6 +25,7 @@ Test case giao dien ([...-1], [...-2]) kiem tra bang mat nen thuc hien thu cong.
 """
 
 import base64
+import html
 import re
 import time
 from urllib.parse import parse_qs, urlparse
@@ -126,6 +127,13 @@ def visible_text(page: Page, text: str):
     return page.get_by_text(text).filter(visible=True).first
 
 
+def wait_page_ready(page: Page) -> None:
+    """Cho trang khoi tao xong, ke ca request nen livewire tu gui sau khi load.
+    Neu dien form khi request nen chua xong, request nen co the ghi de session
+    va lam mat thong bao flash (quan sat 06/11, xem Q&A so 4)."""
+    page.wait_for_load_state("networkidle")
+
+
 def open_create_form(page: Page) -> None:
     page.goto(LIST_URL)
     page.get_by_role("button", name="+").click()
@@ -133,6 +141,7 @@ def open_create_form(page: Page) -> None:
     # khi JavaScript cua trang chay; thao tac som (vd chon tep) se khong duoc xu ly
     page.wait_for_url(f"{LIST_URL}/create")
     expect(name_box(page)).to_be_visible()
+    wait_page_ready(page)
 
 
 def fill_form(page: Page, name: str, cat_type: str | None = None) -> None:
@@ -160,6 +169,7 @@ def create_model(page: Page, created_models: list, name: str, category: str) -> 
     """Tao Asset Model thuoc danh muc category va kiem tra tao thanh cong."""
     created_models.append(name)
     page.goto(f"{MODELS_URL}/create")
+    wait_page_ready(page)
     name_box(page).fill(name)
     # O Category dung Select2 tai du lieu qua API: the <select> chua co lua chon
     # nao truoc khi tim, nen phai mo o chon, go ten roi bam vao ket qua
@@ -201,7 +211,9 @@ def open_edit_form(page: Page, name: str) -> None:
     rows = find_in_list(page, name)
     expect(rows).to_have_count(1)
     rows.get_by_role("link", name="Update").click()
+    page.wait_for_url(re.compile(r"/\d+/edit"))  # wait_for_url mac dinh cho su kien load: jQuery Validate da khoi tao
     expect(name_box(page)).to_have_value(name)
+    wait_page_ready(page)
 
 
 def delete_all_matching(page: Page, name: str, url: str = LIST_URL, msg: str = MSG_DELETED) -> None:
@@ -733,6 +745,7 @@ def m_name(page: Page):
 def m_open_create(page: Page, mod: Module) -> None:
     page.goto(f"{mod.url}/create")  # goto cho su kien load, JavaScript cua trang da san sang
     expect(m_name(page)).to_be_visible()
+    wait_page_ready(page)
 
 
 def m_fill(page: Page, fields: dict) -> None:
@@ -757,7 +770,9 @@ def m_open_edit(page: Page, mod: Module, search: str):
     rows = find_in_list(page, search, mod.url)
     expect(rows).to_have_count(1)
     rows.get_by_role("link", name="Update").click()
+    page.wait_for_url(re.compile(r"/\d+/edit"))  # wait_for_url mac dinh cho su kien load: jQuery Validate da khoi tao
     expect(m_name(page)).to_be_visible()
+    wait_page_ready(page)
 
 
 def select2_pick(page: Page, select_name: str, search_text: str | None = None) -> None:
@@ -776,6 +791,7 @@ def create_accessory(page: Page, acc_created: list, name: str,
     """Tao phu kien (Category: muc dau tien co san, Qty = 1) gan voi nha san xuat / nha cung cap."""
     acc_created.append(name)
     page.goto(f"{ACCESSORIES_URL}/create")
+    wait_page_ready(page)
     page.locator("input[name='name']").fill(name)
     select2_pick(page, "category_id")
     if manufacturer:
@@ -827,6 +843,11 @@ def check_sort_by_name(page: Page, mod: Module) -> None:
         ) as info:
             page.locator("th[data-field='name'] .sortable").click()
         expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+        # Sap xep khong hien lop phu "dang tai", phai cho bang ve xong du lieu moi
+        rows_json = info.value.json()["rows"]  # json() cho nhan xong body
+        cells = page.locator("table tbody tr:not(.no-records-found) td:nth-child(2)")
+        expect(cells.first).to_contain_text(html.unescape(rows_json[0]["name"]))
+        expect(cells.nth(len(rows_json) - 1)).to_contain_text(html.unescape(rows_json[-1]["name"]))
         order = parse_qs(urlparse(info.value.url).query).get("order", ["asc"])[0]
         keys = [sort_key(n) for n in first_column_names(page)]
         expected = sorted(keys, reverse=(order == "desc"))
@@ -1244,6 +1265,7 @@ def test_manufacturer_25_delete_used_by_asset_model(page: Page, man_created, man
     m_create(page, man_created, MAN, name)
     man_models.append(model)
     page.goto(f"{MODELS_URL}/create")
+    wait_page_ready(page)
     page.locator("input[name='name']").fill(model)
     select2_pick(page, "category_id", "Desktops")
     select2_pick(page, "manufacturer_id", name)
