@@ -10,6 +10,8 @@ Thay doi khi tich hop theo yeu cau cua nhom truong:
 - Ham unique_name: dung tu helpers.py
 - Chuyen doi toan bo cac test case thanh cac ham test doc lap cua pytest
 - Dung fixture tu dong don dep du lieu test sau khi chay xong
+- Xu ly dong bo tim kiem bang cach cho phan hoi API chinh xac (page.expect_response)
+- Xu ly modal xac nhan xoa bang expect(...).to_be_visible() tranh loi bo qua hop thoai
 
 Cach chay (dung tai thu muc "Automation Testing Project - Group 17"):
     python -m pytest tests/test_21130420_BuiTrongLinh.py -v
@@ -23,6 +25,8 @@ Chay rieng tung module:
 
 import re
 import time
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeout, expect
 
@@ -123,32 +127,39 @@ def save_form(page: Page):
     btn.click()
 
 
+def search_current(page: Page, text: str):
+    """Tim kiem text tren bang dang mo va cho dung phan hoi API co search=text."""
+    box = page.locator(".search input.search-input, input.search-input").first
+    if box.input_value() == text:
+        expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+        return page.locator("table#table tbody tr").filter(has_text=text)
+    box.fill(text)
+    with page.expect_response(
+        lambda r: "/api/v1/" in r.url and parse_qs(urlparse(r.url).query).get("search") == [text]
+    ):
+        box.press("Enter")
+    expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+    return page.locator("table#table tbody tr").filter(has_text=text)
+
+
 def find_in_table(page: Page, keyword: str, list_url: str):
-    """Tim kiem mot tu khoa trong danh sach bang Bootstrap Table."""
+    """Mo danh sach url va tim kiem keyword qua API, tra ve cac dong chua keyword."""
     page.goto(list_url)
     expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
-    search_box = page.locator(".search input.search-input, input.search-input").first
-    search_box.wait_for(state="visible", timeout=10000)
-    search_box.fill("")
-    search_box.fill(keyword)
-    search_box.press("Enter")
-    page.wait_for_timeout(1000)
-    expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
-    return page.locator("table#table tbody tr").filter(has_text=keyword)
+    return search_current(page, keyword)
 
 
 def delete_matching_item(page: Page, name: str, list_url: str):
-    """Tim ban ghi theo ten va xoa neu co."""
+    """Tim ban ghi theo ten va xoa co cho hop thoai modal xac nhan."""
     rows = find_in_table(page, name, list_url)
     if rows.count() > 0:
-        row = rows.first
-        del_btn = row.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']")
-        if del_btn.count() > 0:
-            del_btn.first.click()
-            confirm_btn = page.locator("#dataConfirmModal #dataConfirmOK, button#dataConfirmOK, .modal-dialog button[type='submit']").first
-            if confirm_btn.is_visible(timeout=3000):
-                confirm_btn.click()
-                page.wait_for_timeout(1000)
+        del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
+        expect(del_btn).to_be_visible()
+        del_btn.click()
+        confirm_btn = page.locator("#dataConfirmModal #dataConfirmOK, button#dataConfirmOK, button:has-text('Yes'), .modal-dialog button[type='submit']").first
+        expect(confirm_btn).to_be_visible()
+        confirm_btn.click()
+        expect(success_alert(page)).to_be_visible()
 
 
 def fill_user_form(page: Page, first_name="", last_name="", username="", email="", password="", confirm="", jobtitle="", employee_num=""):
@@ -240,7 +251,6 @@ def test_location_07_name_maxlength(page: Page):
     name_input = page.locator("input[name='name']")
     expect(name_input).to_be_visible()
     max_len = name_input.get_attribute("maxlength")
-    # Tren form Snipe-IT quy dinh maxlength hoac cho phep toi da 255 ky tu
     assert max_len is None or int(max_len) >= 191
 
 
@@ -289,13 +299,11 @@ def test_location_11_create_sub_location(page: Page, loc_created):
     sub_name = unique_name("Phong_Lab")
     loc_created.extend([parent_name, sub_name])
 
-    # Tao dia diem cha truoc
     page.goto(f"{LOCATIONS_URL}/create")
     page.locator("input[name='name']").fill(parent_name)
     save_form(page)
     page.wait_for_url(LOCATIONS_URL)
 
-    # Tao dia diem con
     page.goto(f"{LOCATIONS_URL}/create")
     page.locator("input[name='name']").fill(sub_name)
     save_form(page)
@@ -319,17 +327,20 @@ def test_location_12_search_exact_name(page: Page, loc_created):
 def test_location_13_search_no_match(page: Page):
     """[Loc-13] Tim kiem tu khoa khong ton tai."""
     fake_kw = f"KhongTonTai_{unique_name('None')}"
-    rows = find_in_table(page, fake_kw, LOCATIONS_URL)
-    expect(rows.first.locator(".no-records-found, tr.no-records-found").or_(rows)).to_have_count(1)
-    expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
+    find_in_table(page, fake_kw, LOCATIONS_URL)
+    expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
 
 
 def test_location_14_pagination(page: Page):
-    """[Loc-14] Phan trang va thay doi so luong ban ghi hien thi."""
+    """[Loc-14] Phan trang va thay doi so luong ban ghi hien thi (kiem tra chuyen trang 2)."""
     page.goto(LOCATIONS_URL)
+    expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
     expect(page.locator(".fixed-table-pagination")).to_be_visible()
-    page_list = page.locator(".page-list, .pagination")
-    expect(page_list.first).to_be_visible()
+    next_btn = page.locator(".page-next a, li.page-next a").first
+    if next_btn.is_visible() and page.locator("li.page-next.disabled").count() == 0:
+        next_btn.click()
+        expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+        expect(page.locator("li.page-number.active, li.page-item.active").first).to_contain_text("2")
 
 
 def test_location_15_cancel_edit(page: Page, loc_created):
@@ -343,6 +354,7 @@ def test_location_15_cancel_edit(page: Page, loc_created):
 
     rows = find_in_table(page, name, LOCATIONS_URL)
     edit_btn = rows.first.locator("a[href*='/edit']").first
+    expect(edit_btn).to_be_visible()
     edit_btn.click()
     page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
     page.wait_for_url(re.compile(r"/locations$"), timeout=10000)
@@ -359,7 +371,9 @@ def test_location_16_edit_info(page: Page, loc_created):
     page.wait_for_url(LOCATIONS_URL)
 
     rows = find_in_table(page, name, LOCATIONS_URL)
-    rows.first.locator("a[href*='/edit']").first.click()
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    expect(edit_btn).to_be_visible()
+    edit_btn.click()
     page.locator("input[name='city']").fill("Binh Duong")
     save_form(page)
     page.wait_for_url(LOCATIONS_URL)
@@ -376,12 +390,12 @@ def test_location_17_cancel_delete(page: Page, loc_created):
     page.wait_for_url(LOCATIONS_URL)
 
     rows = find_in_table(page, name, LOCATIONS_URL)
-    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete']")
-    if del_btn.count() > 0:
-        del_btn.first.click()
-        close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel'), .modal-footer button:has-text('No')").first
-        if close_btn.is_visible(timeout=3000):
-            close_btn.click()
+    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
+    expect(del_btn).to_be_visible()
+    del_btn.click()
+    close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel'), .modal-footer button:has-text('No')").first
+    expect(close_btn).to_be_visible()
+    close_btn.click()
     # Ban ghi van con ton tai
     rows_after = find_in_table(page, name, LOCATIONS_URL)
     expect(rows_after).to_have_count(1)
@@ -395,9 +409,16 @@ def test_location_18_delete_unused(page: Page):
     save_form(page)
     page.wait_for_url(LOCATIONS_URL)
 
-    delete_matching_item(page, name, LOCATIONS_URL)
-    # Tim lai khong con
     rows = find_in_table(page, name, LOCATIONS_URL)
+    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
+    expect(del_btn).to_be_visible()
+    del_btn.click()
+    confirm_btn = page.locator("#dataConfirmModal #dataConfirmOK, button#dataConfirmOK, button:has-text('Yes'), .modal-dialog button[type='submit']").first
+    expect(confirm_btn).to_be_visible()
+    confirm_btn.click()
+    expect(success_alert(page)).to_be_visible()
+
+    find_in_table(page, name, LOCATIONS_URL)
     expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
 
 
@@ -512,14 +533,20 @@ def test_department_11_search_exact_name(page: Page, dept_created):
 def test_department_12_search_no_match(page: Page):
     """[Dept-12] Tim kiem tu khoa khong ton tai."""
     fake_kw = f"KhongCo_Dept_{unique_name('None')}"
-    rows = find_in_table(page, fake_kw, DEPARTMENTS_URL)
-    expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
+    find_in_table(page, fake_kw, DEPARTMENTS_URL)
+    expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
 
 
 def test_department_13_pagination(page: Page):
-    """[Dept-13] Phan trang va thay doi so luong ban ghi hien thi."""
+    """[Dept-13] Phan trang va thay doi so luong ban ghi hien thi (kiem tra chuyen trang 2)."""
     page.goto(DEPARTMENTS_URL)
+    expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
     expect(page.locator(".fixed-table-pagination")).to_be_visible()
+    next_btn = page.locator(".page-next a, li.page-next a").first
+    if next_btn.is_visible() and page.locator("li.page-next.disabled").count() == 0:
+        next_btn.click()
+        expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+        expect(page.locator("li.page-number.active, li.page-item.active").first).to_contain_text("2")
 
 
 def test_department_14_edit_form_display(page: Page, dept_created):
@@ -532,7 +559,9 @@ def test_department_14_edit_form_display(page: Page, dept_created):
     page.wait_for_url(DEPARTMENTS_URL)
 
     rows = find_in_table(page, name, DEPARTMENTS_URL)
-    rows.first.locator("a[href*='/edit']").first.click()
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    expect(edit_btn).to_be_visible()
+    edit_btn.click()
     expect(page.locator("input[name='name']")).to_have_value(name)
 
 
@@ -546,7 +575,9 @@ def test_department_15_cancel_edit(page: Page, dept_created):
     page.wait_for_url(DEPARTMENTS_URL)
 
     rows = find_in_table(page, name, DEPARTMENTS_URL)
-    rows.first.locator("a[href*='/edit']").first.click()
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    expect(edit_btn).to_be_visible()
+    edit_btn.click()
     page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
     page.wait_for_url(re.compile(r"/departments$"), timeout=10000)
     expect(page).to_have_url(re.compile(r"/departments"))
@@ -564,7 +595,9 @@ def test_department_16_edit_name(page: Page, dept_created):
     page.wait_for_url(DEPARTMENTS_URL)
 
     rows = find_in_table(page, name, DEPARTMENTS_URL)
-    rows.first.locator("a[href*='/edit']").first.click()
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    expect(edit_btn).to_be_visible()
+    edit_btn.click()
     page.locator("input[name='name']").fill(new_name)
     save_form(page)
     page.wait_for_url(DEPARTMENTS_URL)
@@ -581,12 +614,12 @@ def test_department_17_cancel_delete(page: Page, dept_created):
     page.wait_for_url(DEPARTMENTS_URL)
 
     rows = find_in_table(page, name, DEPARTMENTS_URL)
-    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete']")
-    if del_btn.count() > 0:
-        del_btn.first.click()
-        close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel')").first
-        if close_btn.is_visible(timeout=3000):
-            close_btn.click()
+    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
+    expect(del_btn).to_be_visible()
+    del_btn.click()
+    close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel'), .modal-footer button:has-text('No')").first
+    expect(close_btn).to_be_visible()
+    close_btn.click()
     rows_after = find_in_table(page, name, DEPARTMENTS_URL)
     expect(rows_after).to_have_count(1)
 
@@ -599,8 +632,16 @@ def test_department_18_delete_unused(page: Page):
     save_form(page)
     page.wait_for_url(DEPARTMENTS_URL)
 
-    delete_matching_item(page, name, DEPARTMENTS_URL)
     rows = find_in_table(page, name, DEPARTMENTS_URL)
+    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
+    expect(del_btn).to_be_visible()
+    del_btn.click()
+    confirm_btn = page.locator("#dataConfirmModal #dataConfirmOK, button#dataConfirmOK, button:has-text('Yes'), .modal-dialog button[type='submit']").first
+    expect(confirm_btn).to_be_visible()
+    confirm_btn.click()
+    expect(success_alert(page)).to_be_visible()
+
+    find_in_table(page, name, DEPARTMENTS_URL)
     expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
 
 
@@ -677,7 +718,6 @@ def test_user_09_invalid_email(page: Page):
     un = unique_name("badmail")
     fill_user_form(page, first_name="Test", username=un, email="invalid-email-format", password="Password123!", confirm="Password123!")
     save_form(page)
-    # Trinh duyet hoac server se chan email khong hop le
     expect(error_alert(page).or_(page.locator(".has-error, input:invalid"))).to_be_visible()
 
 
@@ -765,7 +805,9 @@ def test_user_17_edit_name(page: Page, user_created):
     page.wait_for_url(USERS_URL)
 
     rows = find_in_table(page, un, USERS_URL)
-    rows.first.locator("a[href*='/edit']").first.click()
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    expect(edit_btn).to_be_visible()
+    edit_btn.click()
     page.locator("input[name='first_name']").fill("SauKhiSua")
     save_form(page)
     page.wait_for_url(USERS_URL)
@@ -791,7 +833,9 @@ def test_user_19_cancel_edit(page: Page, user_created):
     page.wait_for_url(USERS_URL)
 
     rows = find_in_table(page, un, USERS_URL)
-    rows.first.locator("a[href*='/edit']").first.click()
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    expect(edit_btn).to_be_visible()
+    edit_btn.click()
     page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
     page.wait_for_url(re.compile(r"/users$"), timeout=10000)
     expect(page).to_have_url(re.compile(r"/users"))
@@ -805,8 +849,16 @@ def test_user_20_delete_unused(page: Page):
     save_form(page)
     page.wait_for_url(USERS_URL)
 
-    delete_matching_item(page, un, USERS_URL)
     rows = find_in_table(page, un, USERS_URL)
+    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
+    expect(del_btn).to_be_visible()
+    del_btn.click()
+    confirm_btn = page.locator("#dataConfirmModal #dataConfirmOK, button#dataConfirmOK, button:has-text('Yes'), .modal-dialog button[type='submit']").first
+    expect(confirm_btn).to_be_visible()
+    confirm_btn.click()
+    expect(success_alert(page)).to_be_visible()
+
+    find_in_table(page, un, USERS_URL)
     expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
 
 
@@ -820,12 +872,12 @@ def test_user_21_cancel_delete(page: Page, user_created):
     page.wait_for_url(USERS_URL)
 
     rows = find_in_table(page, un, USERS_URL)
-    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete']")
-    if del_btn.count() > 0:
-        del_btn.first.click()
-        close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel')").first
-        if close_btn.is_visible(timeout=3000):
-            close_btn.click()
+    del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
+    expect(del_btn).to_be_visible()
+    del_btn.click()
+    close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel'), .modal-footer button:has-text('No')").first
+    expect(close_btn).to_be_visible()
+    close_btn.click()
     rows_after = find_in_table(page, un, USERS_URL)
     expect(rows_after).to_have_count(1)
 
@@ -834,7 +886,6 @@ def test_user_22_cannot_delete_self(page: Page):
     """[User-22] Kiem tra khong the xoa tai khoan admin dang dang nhap."""
     rows = find_in_table(page, "admin", USERS_URL)
     expect(rows).to_have_count(1)
-    # Nut xoa cua tai khoan dang dang nhap se bi an hoac disabled
     del_btn = rows.first.locator("button.delete-asset[disabled], button.delete-asset.disabled, a.delete-asset.disabled")
     has_protection = del_btn.count() > 0 or rows.first.locator("button.delete-asset").count() == 0
     assert has_protection, "Tai khoan admin dang dang nhap phai duoc bao ve khong the xoa"
@@ -856,14 +907,20 @@ def test_user_23_search_exact_username(page: Page, user_created):
 def test_user_24_search_no_match(page: Page):
     """[User-24] Tim kiem tu khoa khong ton tai."""
     fake_un = f"KhongTonTai_User_{unique_name('None')}"
-    rows = find_in_table(page, fake_un, USERS_URL)
-    expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
+    find_in_table(page, fake_un, USERS_URL)
+    expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
 
 
 def test_user_25_pagination(page: Page):
-    """[User-25] Phan trang va so luong ban ghi."""
+    """[User-25] Phan trang va so luong ban ghi (kiem tra chuyen sang trang 2)."""
     page.goto(USERS_URL)
+    expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
     expect(page.locator(".fixed-table-pagination")).to_be_visible()
+    next_btn = page.locator(".page-next a, li.page-next a").first
+    if next_btn.is_visible() and page.locator("li.page-next.disabled").count() == 0:
+        next_btn.click()
+        expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+        expect(page.locator("li.page-number.active, li.page-item.active").first).to_contain_text("2")
 
 
 def test_user_26_login_toggle(page: Page):
