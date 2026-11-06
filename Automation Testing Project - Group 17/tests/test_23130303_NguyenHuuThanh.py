@@ -42,8 +42,8 @@ from helpers import BASE_URL, unique_name  # phan dung chung cua project
 ASSETS_URL = f"{BASE_URL}/hardware"
 MODELS_URL = f"{BASE_URL}/models"
 
-# Demo phan hoi cham va thinh thoang tra 503: cho toi da 15 giay cho moi buoc kiem tra
-expect.set_options(timeout=15_000)
+# Thoi gian cho cua expect(...) dung mac dinh chung cua nhom (conftest.py: 10 giay).
+# Cho nao that su can lau hon thi truyen timeout= rieng cho expect do.
 
 # =====================================================================
 # 2. CAU THONG BAO DA XAC NHAN TREN TRANG THAT (khao sat 30/10/2026)
@@ -156,7 +156,9 @@ def success_alert(page: Page):
 
 
 def error_alert(page: Page):
-    return page.locator("div.alert.alert-danger")
+    return page.locator(
+        "div.alert.alert-danger:not(.js-saved-searches-save-error)"
+    )
 
 
 def assert_success(page: Page, expected: str) -> None:
@@ -182,7 +184,8 @@ def no_records(page: Page):
 def field_errors(page: Page) -> list[str]:
     """Cac cau loi hien thi tai tung truong va loi tong quat cua form."""
     return page.eval_on_selector_all(
-        ".has-error .help-block, div.alert.alert-danger, span.alert-msg, .help-block.with-errors li",
+        ".has-error .help-block, div.alert.alert-danger:not(.js-saved-searches-save-error), "
+        "span.alert-msg, .help-block.with-errors li",
         "els => els.map(e => e.innerText.trim()).filter(Boolean)",
     )
 
@@ -416,9 +419,16 @@ def test_asset_09_asset_tag_boundary_191_192(page: Page, created_models, created
     goto(page, "/hardware/create")
     fill_asset_form(page, tag192, model)
     save(page)
-    page.wait_for_timeout(2_000)
+    # Cho phan hoi that su (loi hoac thanh cong) thay vi cho co dinh roi dem
+    page.wait_for_selector("div.alert.alert-danger, div.alert.alert-success", timeout=10_000)
     if success_alert(page).count():
-        pytest.xfail("BUG #G17-BUG-02: Asset Tag 192 ky tu van duoc luu (gioi han CSDL 191 khong duoc kiem tra)")
+        raise AssertionError(
+            "BUG #G17-BUG-02: Asset Tag 192 ky tu van duoc luu "
+            "(gioi han CSDL 191 khong duoc kiem tra)"
+        )
+    assert error_alert(page).count() or field_errors(page), (
+        "Phai bao loi khi Asset Tag vuot 191 ky tu"
+    )
 
 
 def test_asset_10_name_max_length_and_html(page: Page, created_models, created_assets):
@@ -498,7 +508,7 @@ def test_asset_15_purchase_date_invalid(page: Page, created_models, created_asse
     """[Asset-15] Purchase Date khong ton tai (30/02/2026) phai bi tu choi.
 
     Khao sat 31/10/2026: he thong CHAP NHAN va luu thanh ngay hien tai,
-    khong hien thi loi -> ghi nhan bug G17-BUG-03 va danh xfail."""
+    khong hien thi loi -> ghi nhan bug G17-BUG-03 va de test FAILED (khong dung xfail)."""
     model = unique_name("Model")
     create_model(page, created_models, model)
     tag = f"G17-Date_{time.time_ns() // 1_000_000}"
@@ -507,7 +517,8 @@ def test_asset_15_purchase_date_invalid(page: Page, created_models, created_asse
     goto(page, "/hardware/create")
     fill_asset_form(page, tag, model, **{"#purchase_date": "30/02/2026"})
     save(page)
-    page.wait_for_timeout(2_000)
+    # Cho den khi form phan hoi (loi hoac tao thanh cong) thay vi cho co dinh
+    page.wait_for_selector("div.alert.alert-danger, div.alert.alert-success", timeout=10_000)
 
     if page.url.endswith("/hardware/create"):
         messages = " ".join(field_errors(page))
@@ -518,7 +529,9 @@ def test_asset_15_purchase_date_invalid(page: Page, created_models, created_asse
     page.goto(href + "/edit", wait_until="domcontentloaded")
     expand_optional_sections(page)
     saved = page.locator("#purchase_date").input_value()
-    pytest.xfail(f"BUG #G17-BUG-03: ngay khong ton tai 30/02/2026 van duoc luu (thanh {saved}), khong bao loi")
+    raise AssertionError(
+        f"BUG #G17-BUG-03: ngay khong ton tai 30/02/2026 van duoc luu (thanh {saved}), khong bao loi"
+    )
 
 
 def test_asset_16_warranty_boundary(page: Page, created_models, created_assets):
@@ -736,12 +749,14 @@ def test_asset_27_delete_deployed(page: Page, created_models, created_assets):
     goto(page, f"/hardware/{asset_id}")
     page.locator(".delete-asset").first.click()
     page.locator("#dataConfirmModal").get_by_role("button", name="Yes").click()
-    page.wait_for_timeout(2_000)
 
     goto(page, f"/hardware?search={tag}")
-    still_there = page.locator("table tbody tr", has_text=tag).count()
-    if not still_there:
-        pytest.xfail("BUG #G17-BUG-01: xoa duoc tai san dang cap phat, khong canh bao nhu ky vong")
+    rows = page.locator("table tbody tr", has_text=tag)
+    # Cho bang ket qua tai xong (co dong hoac 'No matching records found') roi moi dem
+    expect(rows.or_(no_records(page)).first).to_be_visible()
+    assert rows.count(), (
+        "BUG #G17-BUG-01: xoa duoc tai san dang cap phat, khong canh bao nhu ky vong"
+    )
 
 
 def test_asset_28_cancel_delete(page: Page, created_models, created_assets):
