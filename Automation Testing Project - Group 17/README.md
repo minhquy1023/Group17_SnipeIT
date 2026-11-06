@@ -19,7 +19,7 @@ Automation Testing Project - Group 17/
 | File test | Thành viên | Chức năng |
 |---|---|---|
 | `test_23130303_NguyenHuuThanh.py` | Nguyễn Hữu Thanh | Asset, Checkout, Model |
-| `test_23130056_PhamHuuDat.py` | Phạm Hữu Đạt | License, Kit, Field |
+| (chưa tích hợp) | Phạm Hữu Đạt | License, Kit, Field |
 | `test_23130138_TaVanHuy.py` | Tạ Văn Huy | Accessory, Consumable, Component |
 | `test_21130420_BuiTrongLinh.py` | Bùi Trọng Linh | User, Department, Location |
 | `test_21130507_TrinhMinhQuy.py` | Trịnh Minh Quý | Category, Manufacturer, Supplier |
