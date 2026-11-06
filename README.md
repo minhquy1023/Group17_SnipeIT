@@ -43,7 +43,7 @@
 | `Automation/MaSV_HoTen_ASM7.py` | Script automation 3 chức năng của từng thành viên, bản nộp ASM7 (giữ nguyên để đối chiếu) |
 | `TestCases/Group17_MaSV_HoTen.xlsx` | Test design và test case 3 chức năng của từng thành viên |
 | `TestCases/Group17_SnipeIT.xlsx` | Tài liệu test case gộp của cả nhóm (đang cập nhật) |
-| `AutomationPlan/` | Kế hoạch automation test (đang cập nhật) |
+| `AutomationPlan/` |    Kế hoạch automation test: công cụ, tiêu chí chọn test case, quy trình chạy và phân loại lỗi (sơ đồ và checklist) |
 
 ## Chạy Test Suite của nhóm
 
