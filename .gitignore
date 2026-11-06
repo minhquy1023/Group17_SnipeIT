@@ -9,6 +9,7 @@ __pycache__/
 
 # Ket qua chay test ca nhan (bo vao file zip, khong commit)
 report_*.html
+report_*.xml
 log_*.txt
 results_*/
 test-results/

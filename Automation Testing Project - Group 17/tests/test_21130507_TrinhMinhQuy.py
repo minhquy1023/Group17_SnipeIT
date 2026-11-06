@@ -25,8 +25,10 @@ Test case giao dien ([...-1], [...-2]) kiem tra bang mat nen thuc hien thu cong.
 """
 
 import base64
+import html
 import re
 import time
+import unicodedata
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -126,6 +128,14 @@ def visible_text(page: Page, text: str):
     return page.get_by_text(text).filter(visible=True).first
 
 
+def wait_page_ready(page: Page) -> None:
+    """Cho trang khoi tao xong, ke ca request nen trang tu gui sau khi load
+    (/livewire/update, /api/v1/saved-searches). Neu dien form hoac chuyen trang khi
+    request nen chua xong, request nen co the ghi de session va lam mat thong bao
+    flash (quan sat 06/11, xem Q&A so 4)."""
+    page.wait_for_load_state("networkidle")
+
+
 def open_create_form(page: Page) -> None:
     page.goto(LIST_URL)
     page.get_by_role("button", name="+").click()
@@ -133,6 +143,7 @@ def open_create_form(page: Page) -> None:
     # khi JavaScript cua trang chay; thao tac som (vd chon tep) se khong duoc xu ly
     page.wait_for_url(f"{LIST_URL}/create")
     expect(name_box(page)).to_be_visible()
+    wait_page_ready(page)
 
 
 def fill_form(page: Page, name: str, cat_type: str | None = None) -> None:
@@ -160,6 +171,7 @@ def create_model(page: Page, created_models: list, name: str, category: str) -> 
     """Tao Asset Model thuoc danh muc category va kiem tra tao thanh cong."""
     created_models.append(name)
     page.goto(f"{MODELS_URL}/create")
+    wait_page_ready(page)
     name_box(page).fill(name)
     # O Category dung Select2 tai du lieu qua API: the <select> chua co lua chon
     # nao truoc khi tim, nen phai mo o chon, go ten roi bam vao ket qua
@@ -201,7 +213,9 @@ def open_edit_form(page: Page, name: str) -> None:
     rows = find_in_list(page, name)
     expect(rows).to_have_count(1)
     rows.get_by_role("link", name="Update").click()
+    page.wait_for_url(re.compile(r"/\d+/edit"))  # wait_for_url mac dinh cho su kien load: jQuery Validate da khoi tao
     expect(name_box(page)).to_have_value(name)
+    wait_page_ready(page)
 
 
 def delete_all_matching(page: Page, name: str, url: str = LIST_URL, msg: str = MSG_DELETED) -> None:
@@ -733,6 +747,7 @@ def m_name(page: Page):
 def m_open_create(page: Page, mod: Module) -> None:
     page.goto(f"{mod.url}/create")  # goto cho su kien load, JavaScript cua trang da san sang
     expect(m_name(page)).to_be_visible()
+    wait_page_ready(page)
 
 
 def m_fill(page: Page, fields: dict) -> None:
@@ -757,7 +772,9 @@ def m_open_edit(page: Page, mod: Module, search: str):
     rows = find_in_list(page, search, mod.url)
     expect(rows).to_have_count(1)
     rows.get_by_role("link", name="Update").click()
+    page.wait_for_url(re.compile(r"/\d+/edit"))  # wait_for_url mac dinh cho su kien load: jQuery Validate da khoi tao
     expect(m_name(page)).to_be_visible()
+    wait_page_ready(page)
 
 
 def select2_pick(page: Page, select_name: str, search_text: str | None = None) -> None:
@@ -776,6 +793,7 @@ def create_accessory(page: Page, acc_created: list, name: str,
     """Tao phu kien (Category: muc dau tien co san, Qty = 1) gan voi nha san xuat / nha cung cap."""
     acc_created.append(name)
     page.goto(f"{ACCESSORIES_URL}/create")
+    wait_page_ready(page)
     page.locator("input[name='name']").fill(name)
     select2_pick(page, "category_id")
     if manufacturer:
@@ -811,9 +829,13 @@ def first_column_names(page: Page) -> list[str]:
 
 
 def sort_key(text: str) -> str:
-    # Chi so sanh chu va so, khong phan biet hoa/thuong: cach sap xep ky tu dac biet
-    # cua co so du lieu co the khac Python, so sanh ca ky tu dac biet de bao sai
-    return re.sub(r"[^0-9a-z]", "", text.casefold())
+    # Khong phan biet hoa/thuong va dau (co so du lieu so sanh khong phan biet dau: e = é);
+    # moi cum ky tu dac biet (dau cau, khoang trang) thay bang 1 khoang trang: co so du lieu xep
+    # ky tu dac biet TRUOC chu va so (vd "Smith, L..." < "Smitham"), nhung thu tu giua cac ky tu
+    # dac biet voi nhau co the khac Python, nen coi chung nhu nhau
+    text = unicodedata.normalize("NFKD", text.casefold())
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return re.sub(r"[^0-9a-z]+", " ", text).strip()
 
 
 def check_sort_by_name(page: Page, mod: Module) -> None:
@@ -827,6 +849,11 @@ def check_sort_by_name(page: Page, mod: Module) -> None:
         ) as info:
             page.locator("th[data-field='name'] .sortable").click()
         expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+        # Sap xep khong hien lop phu "dang tai", phai cho bang ve xong du lieu moi
+        rows_json = info.value.json()["rows"]  # json() cho nhan xong body
+        cells = page.locator("table tbody tr:not(.no-records-found) td:nth-child(2)")
+        expect(cells.first).to_contain_text(html.unescape(rows_json[0]["name"]))
+        expect(cells.nth(len(rows_json) - 1)).to_contain_text(html.unescape(rows_json[-1]["name"]))
         order = parse_qs(urlparse(info.value.url).query).get("order", ["asc"])[0]
         keys = [sort_key(n) for n in first_column_names(page)]
         expected = sorted(keys, reverse=(order == "desc"))
@@ -895,6 +922,7 @@ def check_delete_unused(page: Page, mod: Module, cleanup: list) -> None:
     expect(success_alert(page)).to_contain_text(mod.deleted)
     find_in_list(page, name, mod.url)
     expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
+    wait_page_ready(page)  # cho request nen cua trang danh sach (saved-searches, livewire) xong roi moi mo trang khac
 
     page.goto(detail_url)
     expect(error_alert(page)).to_contain_text(mod.not_found)
@@ -1244,6 +1272,7 @@ def test_manufacturer_25_delete_used_by_asset_model(page: Page, man_created, man
     m_create(page, man_created, MAN, name)
     man_models.append(model)
     page.goto(f"{MODELS_URL}/create")
+    wait_page_ready(page)
     page.locator("input[name='name']").fill(model)
     select2_pick(page, "category_id", "Desktops")
     select2_pick(page, "manufacturer_id", name)
