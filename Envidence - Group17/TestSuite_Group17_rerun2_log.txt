@@ -1,0 +1,1018 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.7.0 -- D:\PlaywrightPractice\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.12.10', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.1.1', 'pluggy': '1.7.0'}, 'Plugins': {'html': '4.2.0', 'metadata': '3.1.1', 'playwright': '0.10.0'}, 'JAVA_HOME': 'C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.19.10-hotspot\\'}
+rootdir: C:\Users\Trinh Minh Quy\OneDrive\Documents\GitHub\Group17_SnipeIT\Automation Testing Project - Group 17
+configfile: pytest.ini
+plugins: html-4.2.0, metadata-3.1.1, playwright-0.10.0
+collecting ... collected 33 items
+
+tests/test_21130420_BuiTrongLinh.py::test_user_27_select_department[chromium] FAILED [  3%]
+tests/test_21130420_BuiTrongLinh.py::test_user_28_select_location[chromium] FAILED [  6%]
+tests/test_21130420_BuiTrongLinh.py::test_user_29_custom_permissions[chromium] PASSED [  9%]
+tests/test_21130420_BuiTrongLinh.py::test_user_30_export_button[chromium] PASSED [ 12%]
+tests/test_21130507_TrinhMinhQuy.py::test_category_03_create_required_fields_only[chromium] PASSED [ 15%]
+tests/test_21130507_TrinhMinhQuy.py::test_category_12_name_max_length_255[chromium] FAILED [ 18%]
+tests/test_21130507_TrinhMinhQuy.py::test_category_13_type_over_max_length[chromium] FAILED [ 21%]
+tests/test_21130507_TrinhMinhQuy.py::test_category_26_delete_used_category[chromium] FAILED [ 24%]
+tests/test_21130507_TrinhMinhQuy.py::test_category_31_paste_over_max_length[chromium] FAILED [ 27%]
+tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_09_name_max_length_255[chromium] FAILED [ 30%]
+tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_10_paste_over_max_length[chromium] FAILED [ 33%]
+tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_23_bulk_delete[chromium] FAILED [ 36%]
+tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_24_delete_used_by_accessory[chromium] FAILED [ 39%]
+tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_26_view_deleted[chromium] FAILED [ 42%]
+tests/test_21130507_TrinhMinhQuy.py::test_supplier_09_name_max_length_255[chromium] FAILED [ 45%]
+tests/test_23130138_TaVanHuy.py::test_component_07_blank_quantity[chromium] PASSED [ 48%]
+tests/test_23130138_TaVanHuy.py::test_component_08_negative_quantity[chromium] PASSED [ 51%]
+tests/test_23130138_TaVanHuy.py::test_component_09_decimal_quantity[chromium] FAILED [ 54%]
+tests/test_23130138_TaVanHuy.py::test_component_10_zero_quantity[chromium] PASSED [ 57%]
+tests/test_23130138_TaVanHuy.py::test_component_11_cancel_create[chromium] PASSED [ 60%]
+tests/test_23130138_TaVanHuy.py::test_component_12_edit_form[chromium] PASSED [ 63%]
+tests/test_23130138_TaVanHuy.py::test_component_13_edit_name[chromium] PASSED [ 66%]
+tests/test_23130138_TaVanHuy.py::test_component_14_edit_quantity[chromium] PASSED [ 69%]
+tests/test_23130138_TaVanHuy.py::test_component_15_edit_blank_name[chromium] PASSED [ 72%]
+tests/test_23130138_TaVanHuy.py::test_component_16_cancel_edit[chromium] PASSED [ 75%]
+tests/test_23130138_TaVanHuy.py::test_component_17_search_existing[chromium] PASSED [ 78%]
+tests/test_23130138_TaVanHuy.py::test_component_18_search_not_found[chromium] PASSED [ 81%]
+tests/test_23130138_TaVanHuy.py::test_component_19_sort_name[chromium] PASSED [ 84%]
+tests/test_23130138_TaVanHuy.py::test_component_20_pagination[chromium] PASSED [ 87%]
+tests/test_23130138_TaVanHuy.py::test_component_20_pagination[chromium] ERROR [ 87%]
+tests/test_23130138_TaVanHuy.py::test_component_21_checkout_valid[chromium] PASSED [ 90%]
+tests/test_23130138_TaVanHuy.py::test_component_22_checkout_missing[chromium] PASSED [ 93%]
+tests/test_23130138_TaVanHuy.py::test_component_23_checkout_over_stock[chromium] PASSED [ 96%]
+tests/test_23130138_TaVanHuy.py::test_component_24_checkin_partial[chromium] PASSED [100%]
+
+=================================== ERRORS ====================================
+_________ ERROR at teardown of test_component_20_pagination[chromium] _________
+
+page = <Page url='https://demo.snipeitapp.com/categories'>
+request = <SubRequest 'inventory' for <Function test_component_20_pagination[chromium]>>
+
+    @pytest.fixture
+    def inventory(page: Page, request):
+        inv = Inventory(page, request)
+        started = datetime.now(timezone.utc).isoformat()
+        yield inv
+        screenshot_error = None
+        try:
+            inv.shot('99_BeforeCleanup')
+        except Exception as error:
+            screenshot_error = str(error)
+        errors = inv.cleanup()
+        manifest = {'test': request.node.name, 'started': started,
+                    'observations': inv.observations, 'owned': inv.owned,
+                    'cleanup': inv.cleanups, 'screenshot_error': screenshot_error}
+        (inv.folder / 'evidence.json').write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+>       assert not errors, 'Cleanup chua hoan tat:\n' + '\n'.join(errors)
+E       AssertionError: Cleanup chua hoan tat:
+E         {'route': 'categories', 'name': 'G17_Huy_Component_TC20_Cat_1793992925354', 'id': '44'}: Locator expected to be visible
+E         Actual value: None
+E         Error: element(s) not found 
+E         Call log:
+E           - Expect "to_be_visible" locator(".alert-success").visible.first with timeout 10000ms
+E           - waiting for locator(".alert-success").visible.first
+E         
+E         Aria snapshot:
+E         - link "Skip to main content":
+E           - /url: "#main"
+E         - banner:
+E           - navigation:
+E             - button " Toggle navigation"
+E             - link "Snipe-IT Asset Management Demo logo Snipe-IT Asset Management Demo":
+E               - /url: https://demo.snipeitapp.com
+E               - img "Snipe-IT Asset Management Demo logo"
+E               - text: Snipe-IT Asset Management Demo
+E             - list:
+E               - listitem:
+E                 - search:
+E                   - text: Lookup by Asset Tag
+E                   - textbox "Lookup by Asset Tag"
+E                   - button "Search"
+E               - listitem:
+E                 - link "Alerts 8":
+E                   - /url: "#"
+E               - listitem:
+E                 - link "User Admin":
+E                   - /url: "#"
+E                   - text: User Admin
+E                   - strong
+E               - listitem:
+E                 - link "Admin Settings":
+E                   - /url: https://demo.snipeitapp.com/admin
+E         - complementary:
+E           - list:
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com
+E             - listitem:
+E               - link:
+E                 - /url: "#"
+E             - listitem:
+E               - link:
+E                 - /url: "#"
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/licenses
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/accessories
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/consumables
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/components
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/kits
+E             - listitem:
+E               - link:
+E                 - /url: "#"
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/calendar
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/import
+E             - listitem:
+E               - link:
+E                 - /url: "#"
+E             - listitem:
+E               - link:
+E                 - /url: "#"
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/requests
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/unaccepted-acceptances
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com/account/requestable
+E         - main:
+E           - heading "Categories" [level=1]:
+E             - list:
+E               - listitem:
+E                 - link:
+E                   - /url: https://demo.snipeitapp.com
+E               - listitem: Categories
+E           - status: "DEMO MODE: Some features are disabled for this installation."
+E           - alert:
+E             - strong: "Error:"
+E             - button "Close"
+E             - text: Category_name still has associated items. Please remove them before deleting this Category.
+E           - heading "Categories" [level=3]
+E           - text: Bulk Actions
+E           - combobox "Select rows to see available actions":
+E             - textbox
+E           - button "Go" [disabled]
+E           - button "Columns": 
+E           - button "+"
+E           - button "Refresh": 
+E           - button "Export data": 
+E           - button "Print": 
+E           - button "Fullscreen": 
+E           - button "Advanced search": 
+E           - searchbox "Search": G17_Huy_Component_TC20_Cat_1793992925354
+E           - button ""
+E           - text: Showing 1 to 1 of 1 rows
+E           - table "Categories":
+E             - rowgroup:
+E               - row "Name Image Type QTY  Send Email Acceptance Actions":
+E                 - columnheader:
+E                   - checkbox
+E                 - columnheader "Name"
+E                 - columnheader "Image"
+E                 - columnheader "Type"
+E                 - columnheader "QTY"
+E                 - columnheader " Send Email"
+E                 - columnheader "Acceptance"
+E                 - columnheader "Actions"
+E             - rowgroup:
+E               - row "G17_Huy_Component_TC20_Cat_1793992925354 Component 1 False False Update Delete":
+E                 - cell:
+E                   - checkbox
+E                 - cell "G17_Huy_Component_TC20_Cat_1793992925354":
+E                   - link "G17_Huy_Component_TC20_Cat_1793992925354":
+E                     - /url: https://demo.snipeitapp.com/categories/44
+E                     - mark: G17_Huy_Component_TC20_Cat_1793992925354
+E                 - cell
+E                 - cell "Component"
+E                 - cell "1"
+E                 - cell "False"
+E                 - cell "False"
+E                 - cell "Update Delete":
+E                   - link "Update":
+E                     - /url: https://demo.snipeitapp.com/categories/44/edit
+E                   - link "Delete":
+E                     - /url: https://demo.snipeitapp.com/categories/44
+E             - rowgroup:
+E               - row "1":
+E                 - columnheader
+E                 - columnheader
+E                 - columnheader
+E                 - columnheader
+E                 - columnheader "1"
+E                 - columnheader
+E                 - columnheader
+E                 - columnheader
+E           - text: Showing 1 to 1 of 1 rows
+E           - paragraph:
+E             - text: Click on a checkbox and hold
+E             - code: shift
+E             - text: and click another checkbox in the table to select/de-select a range.
+E         - contentinfo:
+E           - link "Snipe-IT":
+E             - /url: https://snipeitapp.com
+E           - text: is open source software, made with love by Grokability, Inc.
+E           - link "":
+E             - /url: https://bsky.app/profile/snipeitapp.com
+E           - link "":
+E             - /url: https://github.com/grokability/snipe-it/
+E           - link "":
+E             - /url: https://hachyderm.io/@grokability
+E           - link "":
+E             - /url: https://discord.gg/yZFtShAcKk
+E           - text: Version v8.8.3 - build 26143 (master)
+E           - link "User's Manual":
+E             - /url: https://snipe-it.readme.io/docs/overview
+E           - link "Report a bug":
+E             - /url: https://snipeitapp.com/support/
+E       assert not ['{\'route\': \'categories\', \'name\': \'G17_Huy_Component_TC20_Cat_1793992925354\', \'id\': \'44\'}: Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect "to_be_visible" locator(".alert-success").visible.first with timeout 10000ms\n  - waiting for locator(".alert-success").visible.first\n\nAria snapshot:\n- link "Skip to main content":\n  - /url: "#main"\n- banner:\n  - navigation:\n    - button "\uf0c9 Toggle navigation"\n    - link "Snipe-IT Asset Management Demo logo Snipe-IT Asset Management Demo":\n      - /url: https://demo.snipeitapp.com\n      - img "Snipe-IT Asset Management Demo logo"\n      - text: Snipe-IT Asset Management Demo\n    - list:\n      - listitem:\n        - search:\n          - text: Lookup by Asset Tag\n          - textbox "Lookup by Asset Tag"\n          - button "Search"\n      - listitem:\n        - link "Alerts 8":\n          - /url: "#"\n      - listitem:\n        - link "User Admin":\n          - /url: "#"\n          - text: User Admin\n          - strong\n      - listitem:\n        - link "Admin Settings":\n          - /url: https://demo.snipeitapp.com/admin\n- complementary:\n  - list:\n    - l... - /url: https://demo.snipeitapp.com/categories/44/edit\n          - link "Delete":\n            - /url: https://demo.snipeitapp.com/categories/44\n    - rowgroup:\n      - row "1":\n        - columnheader\n        - columnheader\n        - columnheader\n        - columnheader\n        - columnheader "1"\n        - columnheader\n        - columnheader\n        - columnheader\n  - text: Showing 1 to 1 of 1 rows\n  - paragraph:\n    - text: Click on a checkbox and hold\n    - code: shift\n    - text: and click another checkbox in the table to select/de-select a range.\n- contentinfo:\n  - link "Snipe-IT":\n    - /url: https://snipeitapp.com\n  - text: is open source software, made with love by Grokability, Inc.\n  - link "\ue6a3":\n    - /url: https://bsky.app/profile/snipeitapp.com\n  - link "\uf092":\n    - /url: https://github.com/grokability/snipe-it/\n  - link "\uf4f6":\n    - /url: https://hachyderm.io/@grokability\n  - link "\uf392":\n    - /url: https://discord.gg/yZFtShAcKk\n  - text: Version v8.8.3 - build 26143 (master)\n  - link "User\'s Manual":\n    - /url: https://snipe-it.readme.io/docs/overview\n  - link "Report a bug":\n    - /url: https://snipeitapp.com/support/']
+
+tests\test_23130138_TaVanHuy.py:635: AssertionError
+---------------------------- Captured stdout call -----------------------------
+[Paging fixture] component 1/21
+[Paging fixture] component 2/21
+[Paging fixture] component 3/21
+[Paging fixture] component 4/21
+[Paging fixture] component 5/21
+[Paging fixture] component 6/21
+[Paging fixture] component 7/21
+[Paging fixture] component 8/21
+[Paging fixture] component 9/21
+[Paging fixture] component 10/21
+[Paging fixture] component 11/21
+[Paging fixture] component 12/21
+[Paging fixture] component 13/21
+[Paging fixture] component 14/21
+[Paging fixture] component 15/21
+[Paging fixture] component 16/21
+[Paging fixture] component 17/21
+[Paging fixture] component 18/21
+[Paging fixture] component 19/21
+[Paging fixture] component 20/21
+[Paging fixture] component 21/21
+================================== FAILURES ===================================
+__________________ test_user_27_select_department[chromium] ___________________
+
+page = <Page url='https://demo.snipeitapp.com/hardware'>
+user_created = ['G17_deptu_1793992206048']
+
+    def test_user_27_select_department(page: Page, user_created):
+        """[User-27] Chon Phong ban (Department) cho User khi tao moi."""
+        un = unique_name("deptu")
+        user_created.append(un)
+        page.goto(f"{USERS_URL}/create")
+        fill_user_form(page, first_name="DeptUser", username=un, password="Password123!", confirm="Password123!")
+        save_form(page)
+>       page.wait_for_url(USERS_URL)
+
+tests\test_21130420_BuiTrongLinh.py:941: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\sync_api\_generated.py:21446: in wait_for_url
+    self._sync(
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_page.py:592: in wait_for_url
+    return await self._main_frame.wait_for_url(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_frame.py:289: in wait_for_url
+    async with self.expect_navigation(
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_event_context_manager.py:33: in __aexit__
+    await self._future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    async def continuation() -> Optional[Response]:
+>       event = await waiter.result()
+                ^^^^^^^^^^^^^^^^^^^^^
+E       playwright._impl._errors.TimeoutError: Timeout 30000ms exceeded.
+E       =========================== logs ===========================
+E       waiting for navigation to "https://demo.snipeitapp.com/users" until 'load'
+E       ============================================================
+
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_frame.py:265: TimeoutError
+___________________ test_user_28_select_location[chromium] ____________________
+
+page = <Page url='https://demo.snipeitapp.com/hardware'>
+user_created = ['G17_locu_1793992246898']
+
+    def test_user_28_select_location(page: Page, user_created):
+        """[User-28] Chon Dia diem lam viec (Location) cho User khi tao moi."""
+        un = unique_name("locu")
+        user_created.append(un)
+        page.goto(f"{USERS_URL}/create")
+        fill_user_form(page, first_name="LocUser", username=un, password="Password123!", confirm="Password123!")
+        save_form(page)
+>       page.wait_for_url(USERS_URL)
+
+tests\test_21130420_BuiTrongLinh.py:952: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\sync_api\_generated.py:21446: in wait_for_url
+    self._sync(
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_page.py:592: in wait_for_url
+    return await self._main_frame.wait_for_url(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_frame.py:289: in wait_for_url
+    async with self.expect_navigation(
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_event_context_manager.py:33: in __aexit__
+    await self._future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    async def continuation() -> Optional[Response]:
+>       event = await waiter.result()
+                ^^^^^^^^^^^^^^^^^^^^^
+E       playwright._impl._errors.TimeoutError: Timeout 30000ms exceeded.
+E       =========================== logs ===========================
+E       waiting for navigation to "https://demo.snipeitapp.com/users" until 'load'
+E       ============================================================
+
+D:\PlaywrightPractice\.venv\Lib\site-packages\playwright\_impl\_frame.py:265: TimeoutError
+_______________ test_category_12_name_max_length_255[chromium] ________________
+
+page = <Page url='https://demo.snipeitapp.com/categories?page=1&size=20&order=asc&sort=created_at&search=G17_1793992320314_AA...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'>
+created = ['G17_1793992320314_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA']
+
+    def test_category_12_name_max_length_255(page: Page, created):
+        """[Category-12] Name co do dai toi da 255 ky tu."""
+        name = long_name(255)
+        created.append(name[:191])  # phong khi he thong cat ten (da quan sat: chi luu 191 ky tu)
+        create_category(page, created, name, "asset")
+    
+        rows = find_in_list(page, name)
+>       expect(rows).to_have_count(1)
+E       AssertionError: Locator expected to have count '1'
+E       Actual value: 0 
+E       Call log:
+E         - Expect "to_have_count" get_by_role("row").filter(has_text="G17_1793992320314_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") with timeout 10000ms
+E         - waiting for get_by_role("row").filter(has_text="G17_1793992320314_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+E           23 × locator resolved to 0 elements
+E              - unexpected value "0"
+
+tests\test_21130507_TrinhMinhQuy.py:502: AssertionError
+_______________ test_category_13_type_over_max_length[chromium] _______________
+
+page = <Page url='https://demo.snipeitapp.com/categories?page=1&size=20&order=asc&sort=created_at&search=G17_1793992349198_AA...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'>
+created = ['G17_1793992349198_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA']
+
+    def test_category_13_type_over_max_length(page: Page, created):
+        """[Category-13] Go vuot do dai toi da (256 ky tu) vao truong Name.
+        Dan 255 ky tu bang fill(), sau do GO them 1 phim that bang press_sequentially()."""
+        name = long_name(255)
+        created.append(name)
+        created.append(name[:191])  # phong khi he thong cat ten (da quan sat o Category-12: chi luu 191 ky tu)
+        open_create_form(page)
+        name_box(page).fill(name)
+        name_box(page).press_sequentially("B")
+    
+        # O Name co maxlength=255: phim thu 256 bi chan, gia tri giu nguyen (test thu cong 29/10)
+        expect(name_box(page)).to_have_value(name)
+        name_box(page).press("Tab")  # roi khoi truong Name
+        expect(name_box(page)).to_have_value(name)  # ky tu vuot qua bi loai bo
+    
+        type_select(page).select_option("asset")
+        save(page)
+        page.wait_for_url(LIST_URL)
+        expect(success_alert(page)).to_contain_text(MSG_CREATED)
+>       expect(find_in_list(page, name)).to_have_count(1)
+E       AssertionError: Locator expected to have count '1'
+E       Actual value: 0 
+E       Call log:
+E         - Expect "to_have_count" get_by_role("row").filter(has_text="G17_1793992349198_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") with timeout 10000ms
+E         - waiting for get_by_role("row").filter(has_text="G17_1793992349198_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+E           23 × locator resolved to 0 elements
+E              - unexpected value "0"
+
+tests\test_21130507_TrinhMinhQuy.py:525: AssertionError
+_______________ test_category_26_delete_used_category[chromium] _______________
+
+page = <Page url='https://demo.snipeitapp.com/categories'>
+created = ['G17_Used_1793992379212']
+created_models = ['G17_Model_1793992385188']
+
+    def test_category_26_delete_used_category(page: Page, created, created_models):
+        """[Category-26] Xoa danh muc dang duoc su dung (co Asset Model thuoc no).
+        DU KIEN FAILED do loi #G17-BUG-01: thong bao hien "Category_name" thay vi ten
+        that cua danh muc. KHONG sua cau ky vong de test Passed."""
+        name = unique_name("Used")
+        create_category(page, created, name, "asset")
+        create_model(page, created_models, unique_name("Model"), name)
+    
+        rows = find_in_list(page, name)
+        expect(rows).to_have_count(1)
+        rows.get_by_role("link", name="Delete").click()
+        page.get_by_role("button", name="Yes").click()
+    
+        # Doc thong bao truoc, kiem tra sau: neu kiem tra cau thong bao truoc ma
+        # sai thi test dung luon, khong bao gio kiem tra duoc danh muc con hay mat
+        expect(error_alert(page)).to_be_visible()
+        alert_text = error_alert(page).inner_text()
+        expect(find_in_list(page, name)).to_have_count(1)
+    
+        expected_msg = f"{name} still has associated items. Please remove them before deleting this Category."
+>       assert expected_msg in alert_text, f"Thong bao thuc te: {alert_text!r}"
+E       AssertionError: Thong bao thuc te: ' Error: \n×\nCategory_name still has associated items. Please remove them before deleting this Category.'
+E       assert 'G17_Used_1793992379212 still has associated items. Please remove them before deleting this Category.' in ' Error: \n×\nCategory_name still has associated items. Please remove them before deleting this Category.'
+
+tests\test_21130507_TrinhMinhQuy.py:663: AssertionError
+______________ test_category_31_paste_over_max_length[chromium] _______________
+
+page = <Page url='https://demo.snipeitapp.com/categories/create'>
+created = ['G17_1793992409591_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA']
+
+    def test_category_31_paste_over_max_length(page: Page, created):
+        """[Category-31] Dan chuoi vuot do dai toi da (256 ky tu) vao truong Name.
+        Ky vong FAILED: he thong cat con 255 ky tu ma khong thong bao (#G17-BUG-03)."""
+        name = long_name(256)
+        created.append(name)
+        created.append(name[:255])  # phong khi he thong luu ban bi cat
+        open_create_form(page)
+        name_box(page).fill(name)  # fill() dua ca chuoi vao mot lan, giong thao tac dan
+    
+>       expect(visible_text(page, MSG_MAX_LENGTH)).to_be_visible()
+E       AssertionError: Locator expected to be visible
+E       Actual value: None
+E       Error: element(s) not found 
+E       Call log:
+E         - Expect "to_be_visible" get_by_text("Please enter no more than 255 characters.").visible.first with timeout 10000ms
+E         - waiting for get_by_text("Please enter no more than 255 characters.").visible.first
+E       
+E       Aria snapshot:
+E       - link "Skip to main content":
+E         - /url: "#main"
+E       - banner:
+E         - navigation:
+E           - button " Toggle navigation"
+E           - link "Snipe-IT Asset Management Demo logo Snipe-IT Asset Management Demo":
+E             - /url: https://demo.snipeitapp.com
+E             - img "Snipe-IT Asset Management Demo logo"
+E             - text: Snipe-IT Asset Management Demo
+E           - list:
+E             - listitem:
+E               - search:
+E                 - text: Lookup by Asset Tag
+E                 - textbox "Lookup by Asset Tag"
+E                 - button "Search"
+E             - listitem:
+E               - link "Alerts 7":
+E                 - /url: "#"
+E             - listitem:
+E               - link "User Admin":
+E                 - /url: "#"
+E                 - text: User Admin
+E                 - strong
+E             - listitem:
+E               - link "Admin Settings":
+E                 - /url: https://demo.snipeitapp.com/admin
+E       - complementary:
+E         - list:
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/licenses
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/accessories
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/consumables
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/components
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/kits
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/calendar
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/import
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/requests
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/unaccepted-acceptances
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/account/requestable
+E       - main:
+E         - heading "Categories Create New" [level=1]:
+E           - list:
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com
+E             - listitem:
+E               - link "Categories":
+E                 - /url: https://demo.snipeitapp.com/categories
+E             - listitem: Create New
+E         - status: "DEMO MODE: Some features are disabled for this installation."
+E         - form:
+E           - button "Save"
+E           - text: Name
+E           - textbox "name": G17_1793992409591_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+E           - text: Type
+E           - combobox:
+E             - textbox
+E           - paragraph: You cannot change the category type once it has been created
+E           - text: Category EULA
+E           - textbox "eula_text"
+E           - paragraph: This field allows you to customize your EULAs for specific types of assets. If you only have one EULA for all of your assets, you can check the box below to use the primary default.
+E           - paragraph: Markdown is supported
+E           - checkbox "use_default_eula"
+E           - text: Use the
+E           - link "primary default EULA":
+E             - /url: "#"
+E           - text: instead.
+E           - checkbox "require_acceptance"
+E           - text: Require users to confirm acceptance of assets in this category.
+E           - checkbox "checkin_email"
+E           - text: Send email to user upon checkin/checkout. Upload Image
+E           - button "image"
+E           - paragraph: Accepted filetypes are jpg, webp, png, gif, svg, and avif. The maximum upload size allowed is 25M.
+E           - text: Notes
+E           - textbox "notes":
+E             - /placeholder: Add a note
+E           - 'group "Tag Color If you wish to use a custom color indicator for this entry, enter a hex color code (e.g., #ffffff for white). Otherwise, you can leave this blank."':
+E             - heading "Tag Color" [level=4]
+E             - paragraph: "If you wish to use a custom color indicator for this entry, enter a hex color code (e.g., #ffffff for white). Otherwise, you can leave this blank."
+E             - text: Tag Color
+E             - textbox "tag_color" [disabled]:
+E               - /placeholder: "#FF0000"
+E             - note: This feature has been disabled for the demo installation.
+E           - link "Cancel":
+E             - /url: https://demo.snipeitapp.com/categories
+E           - button "Save"
+E       - contentinfo:
+E         - link "Snipe-IT":
+E           - /url: https://snipeitapp.com
+E         - text: is open source software, made with love by Grokability, Inc.
+E         - link "":
+E           - /url: https://bsky.app/profile/snipeitapp.com
+E         - link "":
+E           - /url: https://github.com/grokability/snipe-it/
+E         - link "":
+E           - /url: https://hachyderm.io/@grokability
+E         - link "":
+E           - /url: https://discord.gg/yZFtShAcKk
+E         - text: Version v8.8.3 - build 26143 (master)
+E         - link "User's Manual":
+E           - /url: https://snipe-it.readme.io/docs/overview
+E         - link "Report a bug":
+E           - /url: https://snipeitapp.com/support/
+
+tests\test_21130507_TrinhMinhQuy.py:537: AssertionError
+_____________ test_manufacturer_09_name_max_length_255[chromium] ______________
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers/16/edit'>
+man_created = ['G17_1793992430919_AAAAAAAAAAAA']
+
+    def test_manufacturer_09_name_max_length_255(page: Page, man_created):
+        """[Manufacturer-9] Name 255 ky tu. Khao sat ghi nhan chi luu 191 ky tu."""
+>       check_name_255(page, MAN, man_created)
+
+tests\test_21130507_TrinhMinhQuy.py:1163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers/16/edit'>
+mod = <test_21130507_TrinhMinhQuy.Module object at 0x000001D916D106B0>
+cleanup = ['G17_1793992430919_AAAAAAAAAAAA']
+
+    def check_name_255(page: Page, mod: Module, cleanup: list) -> None:
+        """Luu ten 255 ky tu roi do lai trong form sua. Tim bang phan dau cua ten
+        (neu he thong cat ten thi tim theo ten day du se khong ra)."""
+        name = long_name(255)
+        prefix = name[:30]
+        cleanup.append(prefix)
+        m_open_create(page, mod)
+        m_name(page).fill(name)
+        save(page)
+        page.wait_for_url(mod.url)
+        expect(success_alert(page)).to_contain_text(mod.created)
+    
+        m_open_edit(page, mod, prefix)
+        saved = m_name(page).input_value()
+>       assert saved == name, f"Ten luu duoc {len(saved)} ky tu, ky vong 255 ky tu"
+E       AssertionError: Ten luu duoc 191 ky tu, ky vong 255 ky tu
+E       assert 'G17_17939924...AAAAAAAAAAAAA' == 'G17_17939924...AAAAAAAAAAAAA'
+E         
+E         - G17_1793992430919_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+E         ?                                                                                                                                                                                                ----------------------------------------------------------------
+E         + G17_1793992430919_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...
+E         
+E         ...Full output truncated (1 line hidden), use '-vv' to show
+
+tests\test_21130507_TrinhMinhQuy.py:957: AssertionError
+____________ test_manufacturer_10_paste_over_max_length[chromium] _____________
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers/create'>
+man_created = ['G17_1793992448914_AAAAAAAAAAAA']
+
+    def test_manufacturer_10_paste_over_max_length(page: Page, man_created):
+        """[Manufacturer-10] Dan Name 256 ky tu: ky vong co canh bao."""
+>       check_paste_256(page, MAN, man_created)
+
+tests\test_21130507_TrinhMinhQuy.py:1168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers/create'>
+mod = <test_21130507_TrinhMinhQuy.Module object at 0x000001D916D106B0>
+cleanup = ['G17_1793992448914_AAAAAAAAAAAA']
+
+    def check_paste_256(page: Page, mod: Module, cleanup: list) -> None:
+        """Ky vong FAILED theo kieu #G17-BUG-03: dan vuot do dai bi cat am tham."""
+        name = long_name(256)
+        cleanup.append(name[:30])
+        m_open_create(page, mod)
+        m_name(page).fill(name)  # fill() dua ca chuoi vao mot lan, giong thao tac dan
+>       expect(visible_text(page, MSG_MAX_LENGTH)).to_be_visible()
+E       AssertionError: Locator expected to be visible
+E       Actual value: None
+E       Error: element(s) not found 
+E       Call log:
+E         - Expect "to_be_visible" get_by_text("Please enter no more than 255 characters.").visible.first with timeout 10000ms
+E         - waiting for get_by_text("Please enter no more than 255 characters.").visible.first
+E       
+E       Aria snapshot:
+E       - link "Skip to main content":
+E         - /url: "#main"
+E       - banner:
+E         - navigation:
+E           - button " Toggle navigation"
+E           - link "Snipe-IT Asset Management Demo logo Snipe-IT Asset Management Demo":
+E             - /url: https://demo.snipeitapp.com
+E             - img "Snipe-IT Asset Management Demo logo"
+E             - text: Snipe-IT Asset Management Demo
+E           - list:
+E             - listitem:
+E               - search:
+E                 - text: Lookup by Asset Tag
+E                 - textbox "Lookup by Asset Tag"
+E                 - button "Search"
+E             - listitem:
+E               - link "Alerts 7":
+E                 - /url: "#"
+E             - listitem:
+E               - link "User Admin":
+E                 - /url: "#"
+E                 - text: User Admin
+E                 - strong
+E             - listitem:
+E               - link "Admin Settings":
+E                 - /url: https://demo.snipeitapp.com/admin
+E       - complementary:
+E         - list:
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/licenses
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/accessories
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/consumables
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/components
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/kits
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/calendar
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/import
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: "#"
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/requests
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/unaccepted-acceptances
+E           - listitem:
+E             - link:
+E               - /url: https://demo.snipeitapp.com/account/requestable
+E       - main:
+E         - heading "Manufacturers Create New" [level=1]:
+E           - list:
+E             - listitem:
+E               - link:
+E                 - /url: https://demo.snipeitapp.com
+E             - listitem:
+E               - link "Manufacturers":
+E                 - /url: https://demo.snipeitapp.com/manufacturers
+E             - listitem: Create New
+E         - status: "DEMO MODE: Some features are disabled for this installation."
+E         - form:
+E           - button "Save"
+E           - text: Name
+E           - textbox "name": G17_1793992448914_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+E           - text: URL
+E           - textbox "url":
+E             - /placeholder: https://example.com
+E           - text: Support URL
+E           - textbox "support_url":
+E             - /placeholder: https://example.com
+E           - paragraph:
+E             - text: Variables
+E             - code: "{LOCALE}"
+E             - text: ","
+E             - code: "{SERIAL}"
+E             - text: ","
+E             - code: "{MODEL_NUMBER}"
+E             - text: ", and"
+E             - code: "{MODEL_NAME}"
+E             - text: "may be used in your URL to have those values auto-populate when viewing assets - for example https://checkcoverage.apple.com/{LOCALE}/{SERIAL}."
+E           - text: Warranty Lookup URL
+E           - textbox "warranty_lookup_url":
+E             - /placeholder: https://example.com
+E           - paragraph:
+E             - text: Variables
+E             - code: "{LOCALE}"
+E             - text: ","
+E             - code: "{SERIAL}"
+E             - text: ","
+E             - code: "{MODEL_NUMBER}"
+E             - text: ", and"
+E             - code: "{MODEL_NAME}"
+E             - text: "may be used in your URL to have those values auto-populate when viewing assets - for example https://checkcoverage.apple.com/{LOCALE}/{SERIAL}."
+E           - text: Support Phone
+E           - textbox "support_phone":
+E             - /placeholder: 1-800-555-5555
+E           - text: Support Email
+E           - textbox "support_email":
+E             - /placeholder: support@example.com
+E           - text: Upload Image
+E           - button "image"
+E           - paragraph: Accepted filetypes are jpg, webp, png, gif, svg, and avif. The maximum upload size allowed is 25M.
+E           - text: Notes
+E           - textbox "notes":
+E             - /placeholder: Add a note
+E           - 'group "Tag Color If you wish to use a custom color indicator for this entry, enter a hex color code (e.g., #ffffff for white). Otherwise, you can leave this blank."':
+E             - heading "Tag Color" [level=4]
+E             - paragraph: "If you wish to use a custom color indicator for this entry, enter a hex color code (e.g., #ffffff for white). Otherwise, you can leave this blank."
+E             - text: Tag Color
+E             - textbox "tag_color" [disabled]:
+E               - /placeholder: "#FF0000"
+E             - note: This feature has been disabled for the demo installation.
+E           - link "Cancel":
+E             - /url: https://demo.snipeitapp.com
+E           - button "Save"
+E       - contentinfo:
+E         - link "Snipe-IT":
+E           - /url: https://snipeitapp.com
+E         - text: is open source software, made with love by Grokability, Inc.
+E         - link "":
+E           - /url: https://bsky.app/profile/snipeitapp.com
+E         - link "":
+E           - /url: https://github.com/grokability/snipe-it/
+E         - link "":
+E           - /url: https://hachyderm.io/@grokability
+E         - link "":
+E           - /url: https://discord.gg/yZFtShAcKk
+E         - text: Version v8.8.3 - build 26143 (master)
+E         - link "User's Manual":
+E           - /url: https://snipe-it.readme.io/docs/overview
+E         - link "Report a bug":
+E           - /url: https://snipeitapp.com/support/
+
+tests\test_21130507_TrinhMinhQuy.py:966: AssertionError
+_________________ test_manufacturer_23_bulk_delete[chromium] __________________
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers'>
+man_created = ['G17_Bulk_1793992468976_1', 'G17_Bulk_1793992468976_2']
+
+    def test_manufacturer_23_bulk_delete(page: Page, man_created):
+        """[Manufacturer-23] Xoa hang loat 2 nha san xuat."""
+>       check_bulk_delete(page, MAN, man_created)
+
+tests\test_21130507_TrinhMinhQuy.py:1247: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers'>
+mod = <test_21130507_TrinhMinhQuy.Module object at 0x000001D916D106B0>
+cleanup = ['G17_Bulk_1793992468976_1', 'G17_Bulk_1793992468976_2']
+
+    def check_bulk_delete(page: Page, mod: Module, cleanup: list) -> None:
+        token = unique_name("Bulk")
+        for i in (1, 2):
+            m_create(page, cleanup, mod, f"{token}_{i}")
+        rows = find_in_list(page, token, mod.url)
+        expect(rows).to_have_count(2)
+        for i in range(2):
+            rows.nth(i).locator("input[type='checkbox']").check()
+        expect(page.get_by_text("2 selected")).to_be_visible()
+        # Lua chon "Delete" chi xuat hien khi cac dong da chon xoa duoc (ban ghi chua duoc su dung)
+        page.locator("select[name='bulk_actions']").select_option(label="Delete")
+        page.get_by_role("button", name="Go").click()
+        # Excel ky vong co hop xac nhan: cho toi da 3 giay, co thi bam Yes, khong co thi ghi nhan
+        yes = page.get_by_role("button", name="Yes")
+        try:
+            yes.wait_for(state="visible", timeout=3_000)
+            confirm_shown = True
+        except PlaywrightTimeout:
+            confirm_shown = False
+        if confirm_shown:
+            yes.click()
+        expect(success_alert(page)).to_be_visible()
+        find_in_list(page, token, mod.url)
+        expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
+        # Kiem tra cuoi cung, de phan xoa hang loat van duoc kiem tra truoc
+>       assert confirm_shown, "Xoa hang loat khong co hop xac nhan"
+E       AssertionError: Xoa hang loat khong co hop xac nhan
+E       assert False
+
+tests\test_21130507_TrinhMinhQuy.py:909: AssertionError
+___________ test_manufacturer_24_delete_used_by_accessory[chromium] ___________
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers'>
+man_created = ['G17_Logitech_1793992493951']
+acc_created = ['G17_Mouse_1793992499405']
+
+    def test_manufacturer_24_delete_used_by_accessory(page: Page, man_created, acc_created):
+        """[Manufacturer-24] Xoa nha san xuat dang duoc phu kien su dung.
+        Ky vong FAILED: khao sat ghi nhan thong bao hien "Manufacturer_name" thay ten that."""
+        name = unique_name("Logitech")
+        m_create(page, man_created, MAN, name)
+        create_accessory(page, acc_created, unique_name("Mouse"), manufacturer=name)
+    
+        rows = find_in_list(page, name, MAN.url)
+        delete_row(page, rows)
+        message = error_alert(page).inner_text()
+        # Kiem tra "van con" TRUOC, de neu cau thong bao sai thi phan nay van duoc kiem tra
+        expect(find_in_list(page, name, MAN.url)).to_have_count(1)
+        expected = f"{name} still has associated items. Please remove them before deleting this Manufacturer."
+>       assert expected in message, f"Thong bao thuc te: {message}"
+E       AssertionError: Thong bao thuc te:  Error: 
+E         ×
+E         Manufacturer_name still has associated items. Please remove them before deleting this Manufacturer.
+E       assert 'G17_Logitech_1793992493951 still has associated items. Please remove them before deleting this Manufacturer.' in ' Error: \n×\nManufacturer_name still has associated items. Please remove them before deleting this Manufacturer.'
+
+tests\test_21130507_TrinhMinhQuy.py:1263: AssertionError
+_________________ test_manufacturer_26_view_deleted[chromium] _________________
+
+page = <Page url='https://demo.snipeitapp.com/manufacturers?status=deleted'>
+man_created = ['G17_Deleted_1793992524443']
+
+    def test_manufacturer_26_view_deleted(page: Page, man_created):
+        """[Manufacturer-26] Xem nha san xuat da xoa bang nut Deleted.
+        Ky vong FAILED: khao sat ghi nhan nut Deleted khong loc ban ghi da xoa."""
+        name = unique_name("Deleted")
+        m_create(page, man_created, MAN, name)
+        rows = find_in_list(page, name, MAN.url)
+        delete_row(page, rows)
+        expect(success_alert(page)).to_contain_text(MAN.deleted)
+    
+        page.goto(MAN.url)
+        page.locator("button[name='btnShowDeleted']").click()
+        page.wait_for_url(re.compile(r"status=deleted"))
+>       expect(search_current(page, name)).to_have_count(1)
+E       AssertionError: Locator expected to have count '1'
+E       Actual value: 0 
+E       Call log:
+E         - Expect "to_have_count" get_by_role("row").filter(has_text="G17_Deleted_1793992524443") with timeout 10000ms
+E         - waiting for get_by_role("row").filter(has_text="G17_Deleted_1793992524443")
+E           23 × locator resolved to 0 elements
+E              - unexpected value "0"
+
+tests\test_21130507_TrinhMinhQuy.py:1300: AssertionError
+_______________ test_supplier_09_name_max_length_255[chromium] ________________
+
+page = <Page url='https://demo.snipeitapp.com/suppliers/31/edit'>
+sup_created = ['G17_1793992551366_AAAAAAAAAAAA']
+
+    def test_supplier_09_name_max_length_255(page: Page, sup_created):
+        """[Supplier-9] Supplier Name 255 ky tu. Khao sat ghi nhan chi luu 191 ky tu."""
+>       check_name_255(page, SUP, sup_created)
+
+tests\test_21130507_TrinhMinhQuy.py:1388: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+page = <Page url='https://demo.snipeitapp.com/suppliers/31/edit'>
+mod = <test_21130507_TrinhMinhQuy.Module object at 0x000001D916D106E0>
+cleanup = ['G17_1793992551366_AAAAAAAAAAAA']
+
+    def check_name_255(page: Page, mod: Module, cleanup: list) -> None:
+        """Luu ten 255 ky tu roi do lai trong form sua. Tim bang phan dau cua ten
+        (neu he thong cat ten thi tim theo ten day du se khong ra)."""
+        name = long_name(255)
+        prefix = name[:30]
+        cleanup.append(prefix)
+        m_open_create(page, mod)
+        m_name(page).fill(name)
+        save(page)
+        page.wait_for_url(mod.url)
+        expect(success_alert(page)).to_contain_text(mod.created)
+    
+        m_open_edit(page, mod, prefix)
+        saved = m_name(page).input_value()
+>       assert saved == name, f"Ten luu duoc {len(saved)} ky tu, ky vong 255 ky tu"
+E       AssertionError: Ten luu duoc 191 ky tu, ky vong 255 ky tu
+E       assert 'G17_17939925...AAAAAAAAAAAAA' == 'G17_17939925...AAAAAAAAAAAAA'
+E         
+E         - G17_1793992551366_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+E         ?                                                                                                                                                                                                ----------------------------------------------------------------
+E         + G17_1793992551366_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...
+E         
+E         ...Full output truncated (1 line hidden), use '-vv' to show
+
+tests\test_21130507_TrinhMinhQuy.py:957: AssertionError
+________________ test_component_09_decimal_quantity[chromium] _________________
+
+inventory = <test_23130138_TaVanHuy.Inventory object at 0x000001D9194C8830>
+
+    def test_component_09_decimal_quantity(inventory):
+        """[Component-9] Quantity thập phân."""
+>       inventory.invalid_create(qty='1.5', field='qty')
+
+tests\test_23130138_TaVanHuy.py:978: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_23130138_TaVanHuy.py:269: in invalid_create
+    self.reject(field)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_23130138_TaVanHuy.Inventory object at 0x000001D9194C8830>
+field = 'qty'
+
+    def reject(self, field):
+        before = self.page.url
+        self.save()
+        # Success redirect proves a negative case was accepted; do not convert it to Pass.
+        self.page.wait_for_function('''([url,name]) => location.href!==url ||
+            [...document.querySelectorAll('.has-error,.alert-danger,.error,.invalid-feedback')]
+            .some(e=>e.offsetParent!==null && e.textContent.trim()) ||
+            [...document.getElementsByName(name)].some(e=>e.validity && !e.validity.valid)
+        ''', arg=[before, field])
+        self.shot('02_Validation')
+>       assert self.page.url == before, f'Invalid {field} duoc chap nhan: {self.page.url}'
+E       AssertionError: Invalid qty duoc chap nhan: https://demo.snipeitapp.com/components
+E       assert 'https://demo...om/components' == 'https://demo...onents/create'
+E         
+E         - https://demo.snipeitapp.com/components/create
+E         ?                                       -------
+E         + https://demo.snipeitapp.com/components
+
+tests\test_23130138_TaVanHuy.py:247: AssertionError
+- generated xml file: C:\Users\Trinh Minh Quy\OneDrive\Documents\GitHub\Group17_SnipeIT\Test Report - Group 17\TestReport_Group17_rerun2.xml -
+- Generated html report: file:///C:/Users/Trinh%20Minh%20Quy/OneDrive/Documents/GitHub/Group17_SnipeIT/Automation%20Testing%20Project%20-%20Group%2017/../Test%20Report%20-%20Group%2017/TestReport_Group17_rerun2.html -
+=========================== short test summary info ===========================
+FAILED tests/test_21130420_BuiTrongLinh.py::test_user_27_select_department[chromium]
+FAILED tests/test_21130420_BuiTrongLinh.py::test_user_28_select_location[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_category_12_name_max_length_255[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_category_13_type_over_max_length[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_category_26_delete_used_category[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_category_31_paste_over_max_length[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_09_name_max_length_255[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_10_paste_over_max_length[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_23_bulk_delete[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_24_delete_used_by_accessory[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_manufacturer_26_view_deleted[chromium]
+FAILED tests/test_21130507_TrinhMinhQuy.py::test_supplier_09_name_max_length_255[chromium]
+FAILED tests/test_23130138_TaVanHuy.py::test_component_09_decimal_quantity[chromium]
+ERROR tests/test_23130138_TaVanHuy.py::test_component_20_pagination[chromium]
+============= 13 failed, 20 passed, 1 error in 1104.90s (0:18:24) =============
