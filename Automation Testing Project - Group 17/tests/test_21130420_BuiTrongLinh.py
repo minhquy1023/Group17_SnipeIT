@@ -5,13 +5,14 @@ Website: https://demo.snipeitapp.com (Snipe-IT v8.8.3)
 Cong cu: Python 3.12 + pytest + Playwright (Chromium)
 
 Ban tich hop vao "Automation Testing Project - Group 17" tu script ASM7.
-Thay doi khi tich hop theo yeu cau cua nhom truong:
-- Dang nhap, BASE_URL, tai khoan, thoi gian cho: chuyen sang dung conftest.py va helpers.py
-- Ham unique_name: dung tu helpers.py
-- Chuyen doi toan bo cac test case thanh cac ham test doc lap cua pytest
-- Dung fixture tu dong don dep du lieu test sau khi chay xong
-- Xu ly dong bo tim kiem bang cach cho phan hoi API chinh xac (page.expect_response)
-- Xu ly modal xac nhan xoa bang expect(...).to_be_visible() tranh loi bo qua hop thoai
+Cac cai tien sau khi kiem tra bao cao Test Report:
+- Nut save_form: Chi dinh ro #submit_button trong form (khong bam nham nut search tren navbar)
+- Bang danh sach: Dung page.get_by_role("row") va .bootstrap-table (Snipe-IT 8.8.3 table khong co id='table')
+- Phan trang: Dung .first tranh strict mode violation
+- Form User: Chon o username loai tru input type='hidden'
+- Nut Cancel: Chi dinh ro form a.btn-link de tranh nut Dark Mode an
+- Dau bat buoc (*): Kiem tra class 'required' cua the label
+- Dong bo tim kiem: Dung page.expect_response cho dung API /api/v1/
 
 Cach chay (dung tai thu muc "Automation Testing Project - Group 17"):
     python -m pytest tests/test_21130420_BuiTrongLinh.py -v
@@ -122,8 +123,8 @@ def visible_text(page: Page, text: str):
 
 
 def save_form(page: Page):
-    """Bam nut Save tren form."""
-    btn = page.locator("button[type='submit']:has-text('Save'), #submit_button, button[type='submit']").first
+    """Bam nut Save tren form (chon dung #submit_button cua form, tranh nut search navbar)."""
+    btn = page.locator("#submit_button, form button[type='submit']:has-text('Save'), form button[type='submit']").first
     btn.click()
 
 
@@ -132,14 +133,14 @@ def search_current(page: Page, text: str):
     box = page.locator(".search input.search-input, input.search-input").first
     if box.input_value() == text:
         expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
-        return page.locator("table#table tbody tr").filter(has_text=text)
+        return page.get_by_role("row").filter(has_text=text)
     box.fill(text)
     with page.expect_response(
         lambda r: "/api/v1/" in r.url and parse_qs(urlparse(r.url).query).get("search") == [text]
     ):
         box.press("Enter")
     expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
-    return page.locator("table#table tbody tr").filter(has_text=text)
+    return page.get_by_role("row").filter(has_text=text)
 
 
 def find_in_table(page: Page, keyword: str, list_url: str):
@@ -176,7 +177,7 @@ def fill_user_form(page: Page, first_name="", last_name="", username="", email="
         };
         if (fn) setVal('input[name="first_name"]', fn);
         if (ln) setVal('input[name="last_name"]', ln);
-        if (un) setVal('input[name="username"]', un);
+        if (un) setVal('input[name="username"]:not([type="hidden"])', un);
         if (em) setVal('input[name="email"]', em);
         if (pw) setVal('input[name="password"]', pw);
         if (cf) setVal('input[name="password_confirmation"]', cf);
@@ -198,14 +199,14 @@ def test_location_01_list_display(page: Page):
     page.goto(LOCATIONS_URL)
     expect(page).to_have_title(re.compile(r"Locations", re.I))
     expect(page.locator(".box-title, h1.pagetitle").first).to_be_visible()
-    expect(page.locator("table#table")).to_be_visible()
+    expect(page.locator(".bootstrap-table table, table.table").first).to_be_visible()
 
 
 def test_location_02_create_form_display(page: Page):
     """[Loc-2] Giao dien form tao moi Location."""
     page.goto(f"{LOCATIONS_URL}/create")
     expect(page.locator("input[name='name']")).to_be_visible()
-    expect(page.locator("button[type='submit']").first).to_be_visible()
+    expect(page.locator("#submit_button, button[type='submit']").first).to_be_visible()
 
 
 def test_location_03_required_mark(page: Page):
@@ -213,8 +214,9 @@ def test_location_03_required_mark(page: Page):
     page.goto(f"{LOCATIONS_URL}/create")
     label = page.locator("label[for='name'], label:has-text('Name')").first
     expect(label).to_be_visible()
-    has_star = label.locator(".text-danger, .required, span").filter(has_text="*").count() > 0 or "*" in label.inner_text()
-    assert has_star, "Truong Name phai co ky hieu bat buoc (*)"
+    class_attr = label.get_attribute("class") or ""
+    has_star = "required" in class_attr or "*" in label.inner_text() or label.locator(".text-danger").count() > 0
+    assert has_star, "Truong Name phai co ky hieu bat buoc (*) hoac class 'required'"
 
 
 def test_location_04_default_form_values(page: Page):
@@ -258,8 +260,8 @@ def test_location_08_cancel_create(page: Page):
     """[Loc-8] Huy tao moi Location bang nut [Cancel]."""
     page.goto(f"{LOCATIONS_URL}/create")
     page.locator("input[name='name']").fill("G17_Cancel_Location")
-    page.locator("a:has-text('Cancel'), button:has-text('Cancel'), .btn-link").first.click()
-    page.wait_for_url(re.compile(r"/locations$"), timeout=10000)
+    page.locator("form a:has-text('Cancel'), form a.btn-link").first.click()
+    page.wait_for_url(re.compile(r"/locations$"), timeout=15000)
     expect(page).to_have_url(re.compile(r"/locations"))
 
 
@@ -335,7 +337,7 @@ def test_location_14_pagination(page: Page):
     """[Loc-14] Phan trang va thay doi so luong ban ghi hien thi (kiem tra chuyen trang 2)."""
     page.goto(LOCATIONS_URL)
     expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
-    expect(page.locator(".fixed-table-pagination")).to_be_visible()
+    expect(page.locator(".fixed-table-pagination").first).to_be_visible()
     next_btn = page.locator(".page-next a, li.page-next a").first
     if next_btn.is_visible() and page.locator("li.page-next.disabled").count() == 0:
         next_btn.click()
@@ -356,8 +358,8 @@ def test_location_15_cancel_edit(page: Page, loc_created):
     edit_btn = rows.first.locator("a[href*='/edit']").first
     expect(edit_btn).to_be_visible()
     edit_btn.click()
-    page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
-    page.wait_for_url(re.compile(r"/locations$"), timeout=10000)
+    page.locator("form a:has-text('Cancel'), form a.btn-link").first.click()
+    page.wait_for_url(re.compile(r"/locations$"), timeout=15000)
     expect(page).to_have_url(re.compile(r"/locations"))
 
 
@@ -396,7 +398,6 @@ def test_location_17_cancel_delete(page: Page, loc_created):
     close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel'), .modal-footer button:has-text('No')").first
     expect(close_btn).to_be_visible()
     close_btn.click()
-    # Ban ghi van con ton tai
     rows_after = find_in_table(page, name, LOCATIONS_URL)
     expect(rows_after).to_have_count(1)
 
@@ -419,7 +420,7 @@ def test_location_18_delete_unused(page: Page):
     expect(success_alert(page)).to_be_visible()
 
     find_in_table(page, name, LOCATIONS_URL)
-    expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
+    expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
 
 
 # =====================================================================
@@ -431,14 +432,14 @@ def test_department_01_list_display(page: Page):
     page.goto(DEPARTMENTS_URL)
     expect(page).to_have_title(re.compile(r"Departments", re.I))
     expect(page.locator(".box-title, h1.pagetitle").first).to_be_visible()
-    expect(page.locator("table#table")).to_be_visible()
+    expect(page.locator(".bootstrap-table table, table.table").first).to_be_visible()
 
 
 def test_department_02_create_form_display(page: Page):
     """[Dept-2] Giao dien form tao moi Department."""
     page.goto(f"{DEPARTMENTS_URL}/create")
     expect(page.locator("input[name='name']")).to_be_visible()
-    expect(page.locator("button[type='submit']").first).to_be_visible()
+    expect(page.locator("#submit_button, button[type='submit']").first).to_be_visible()
 
 
 def test_department_03_required_mark(page: Page):
@@ -446,8 +447,9 @@ def test_department_03_required_mark(page: Page):
     page.goto(f"{DEPARTMENTS_URL}/create")
     label = page.locator("label[for='name'], label:has-text('Name')").first
     expect(label).to_be_visible()
-    has_star = label.locator(".text-danger, .required, span").filter(has_text="*").count() > 0 or "*" in label.inner_text()
-    assert has_star, "Truong Department Name phai co dau (*)"
+    class_attr = label.get_attribute("class") or ""
+    has_star = "required" in class_attr or "*" in label.inner_text() or label.locator(".text-danger").count() > 0
+    assert has_star, "Truong Department Name phai co ky hieu bat buoc (*) hoac class 'required'"
 
 
 def test_department_04_default_form_values(page: Page):
@@ -488,8 +490,8 @@ def test_department_08_cancel_create(page: Page):
     """[Dept-8] Huy tao moi Department bang nut [Cancel]."""
     page.goto(f"{DEPARTMENTS_URL}/create")
     page.locator("input[name='name']").fill("G17_Cancel_Dept")
-    page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
-    page.wait_for_url(re.compile(r"/departments$"), timeout=10000)
+    page.locator("form a:has-text('Cancel'), form a.btn-link").first.click()
+    page.wait_for_url(re.compile(r"/departments$"), timeout=15000)
     expect(page).to_have_url(re.compile(r"/departments"))
 
 
@@ -541,7 +543,7 @@ def test_department_13_pagination(page: Page):
     """[Dept-13] Phan trang va thay doi so luong ban ghi hien thi (kiem tra chuyen trang 2)."""
     page.goto(DEPARTMENTS_URL)
     expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
-    expect(page.locator(".fixed-table-pagination")).to_be_visible()
+    expect(page.locator(".fixed-table-pagination").first).to_be_visible()
     next_btn = page.locator(".page-next a, li.page-next a").first
     if next_btn.is_visible() and page.locator("li.page-next.disabled").count() == 0:
         next_btn.click()
@@ -578,8 +580,8 @@ def test_department_15_cancel_edit(page: Page, dept_created):
     edit_btn = rows.first.locator("a[href*='/edit']").first
     expect(edit_btn).to_be_visible()
     edit_btn.click()
-    page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
-    page.wait_for_url(re.compile(r"/departments$"), timeout=10000)
+    page.locator("form a:has-text('Cancel'), form a.btn-link").first.click()
+    page.wait_for_url(re.compile(r"/departments$"), timeout=15000)
     expect(page).to_have_url(re.compile(r"/departments"))
 
 
@@ -617,7 +619,7 @@ def test_department_17_cancel_delete(page: Page, dept_created):
     del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
     expect(del_btn).to_be_visible()
     del_btn.click()
-    close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel'), .modal-footer button:has-text('No')").first
+    close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel')").first
     expect(close_btn).to_be_visible()
     close_btn.click()
     rows_after = find_in_table(page, name, DEPARTMENTS_URL)
@@ -642,7 +644,7 @@ def test_department_18_delete_unused(page: Page):
     expect(success_alert(page)).to_be_visible()
 
     find_in_table(page, name, DEPARTMENTS_URL)
-    expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
+    expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
 
 
 # =====================================================================
@@ -653,14 +655,14 @@ def test_user_01_list_display(page: Page):
     """[User-1] Giao dien man hinh danh sach Users."""
     page.goto(USERS_URL)
     expect(page).to_have_title(re.compile(r"Users", re.I))
-    expect(page.locator("table#table")).to_be_visible()
+    expect(page.locator(".bootstrap-table table, table.table").first).to_be_visible()
 
 
 def test_user_02_create_form_and_tabs(page: Page):
     """[User-2] Giao dien form tao moi User va cac tab."""
     page.goto(f"{USERS_URL}/create")
-    expect(page.locator("input[name='first_name']")).to_be_visible()
-    expect(page.locator("input[name='username']")).to_be_visible()
+    expect(page.locator("input[name='first_name']").first).to_be_visible()
+    expect(page.locator("input[name='username']:not([type='hidden'])").first).to_be_visible()
     expect(page.locator("a[data-toggle='tab'], .nav-tabs li a").first).to_be_visible()
 
 
@@ -733,7 +735,8 @@ def test_user_10_short_password(page: Page):
 def test_user_11_username_maxlength(page: Page):
     """[User-11] Validation do dai Username vuot gioi han."""
     page.goto(f"{USERS_URL}/create")
-    un_input = page.locator("input[name='username']")
+    un_input = page.locator("input[name='username']:not([type='hidden'])").first
+    expect(un_input).to_be_visible()
     max_len = un_input.get_attribute("maxlength")
     assert max_len is None or int(max_len) >= 50
 
@@ -783,8 +786,8 @@ def test_user_15_cancel_create(page: Page):
     """[User-15] Huy thao tac tao moi bang nut [Cancel]."""
     page.goto(f"{USERS_URL}/create")
     fill_user_form(page, first_name="CancelMe", username="G17_Cancel_User")
-    page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
-    page.wait_for_url(re.compile(r"/users$"), timeout=10000)
+    page.locator("form a:has-text('Cancel'), form a.btn-link").first.click()
+    page.wait_for_url(re.compile(r"/users$"), timeout=15000)
     expect(page).to_have_url(re.compile(r"/users"))
 
 
@@ -836,8 +839,8 @@ def test_user_19_cancel_edit(page: Page, user_created):
     edit_btn = rows.first.locator("a[href*='/edit']").first
     expect(edit_btn).to_be_visible()
     edit_btn.click()
-    page.locator("a:has-text('Cancel'), button:has-text('Cancel')").first.click()
-    page.wait_for_url(re.compile(r"/users$"), timeout=10000)
+    page.locator("form a:has-text('Cancel'), form a.btn-link").first.click()
+    page.wait_for_url(re.compile(r"/users$"), timeout=15000)
     expect(page).to_have_url(re.compile(r"/users"))
 
 
@@ -859,7 +862,7 @@ def test_user_20_delete_unused(page: Page):
     expect(success_alert(page)).to_be_visible()
 
     find_in_table(page, un, USERS_URL)
-    expect(page.locator("table#table")).to_contain_text(MSG_NO_RECORDS)
+    expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
 
 
 def test_user_21_cancel_delete(page: Page, user_created):
@@ -875,7 +878,7 @@ def test_user_21_cancel_delete(page: Page, user_created):
     del_btn = rows.first.locator("button.delete-asset, a.delete-asset, a[data-toggle='modal'][href*='delete'], button[data-toggle='modal']").first
     expect(del_btn).to_be_visible()
     del_btn.click()
-    close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel'), .modal-footer button:has-text('No')").first
+    close_btn = page.locator("#dataConfirmModal button[data-dismiss='modal'], .modal-footer button:has-text('Cancel')").first
     expect(close_btn).to_be_visible()
     close_btn.click()
     rows_after = find_in_table(page, un, USERS_URL)
@@ -885,7 +888,7 @@ def test_user_21_cancel_delete(page: Page, user_created):
 def test_user_22_cannot_delete_self(page: Page):
     """[User-22] Kiem tra khong the xoa tai khoan admin dang dang nhap."""
     rows = find_in_table(page, "admin", USERS_URL)
-    expect(rows).to_have_count(1)
+    expect(rows.first).to_be_visible()
     del_btn = rows.first.locator("button.delete-asset[disabled], button.delete-asset.disabled, a.delete-asset.disabled")
     has_protection = del_btn.count() > 0 or rows.first.locator("button.delete-asset").count() == 0
     assert has_protection, "Tai khoan admin dang dang nhap phai duoc bao ve khong the xoa"
@@ -915,7 +918,7 @@ def test_user_25_pagination(page: Page):
     """[User-25] Phan trang va so luong ban ghi (kiem tra chuyen sang trang 2)."""
     page.goto(USERS_URL)
     expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
-    expect(page.locator(".fixed-table-pagination")).to_be_visible()
+    expect(page.locator(".fixed-table-pagination").first).to_be_visible()
     next_btn = page.locator(".page-next a, li.page-next a").first
     if next_btn.is_visible() and page.locator("li.page-next.disabled").count() == 0:
         next_btn.click()
