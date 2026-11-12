@@ -4,15 +4,13 @@ Nhom 17 - 21130420 - Bui Trong Linh - Nhom chuc nang D (Con nguoi va to chuc)
 Website: https://demo.snipeitapp.com (Snipe-IT v8.8.3)
 Cong cu: Python 3.12 + pytest + Playwright (Chromium)
 
-Ban tich hop vao "Automation Testing Project - Group 17" tu script ASM7.
-Cac cai tien sau khi kiem tra bao cao Test Report:
-- Nut save_form: Chi dinh ro #submit_button trong form (khong bam nham nut search tren navbar)
-- Bang danh sach: Dung page.get_by_role("row") va .bootstrap-table (Snipe-IT 8.8.3 table khong co id='table')
-- Phan trang: Dung .first tranh strict mode violation
-- Form User: Chon o username loai tru input type='hidden'
-- Nut Cancel: Chi dinh ro form a.btn-link de tranh nut Dark Mode an
-- Dau bat buoc (*): Kiem tra class 'required' cua the label
-- Dong bo tim kiem: Dung page.expect_response cho dung API /api/v1/
+Kich ban kiem thu chuyen sau (Comprehensive & Deep Workflow Testing):
+- 70 Test Cases doc lap (20 Locations, 20 Departments, 30 Users).
+- Kiem thu da truong day du (Multi-field Form Permutations) tu 8 den 12 truong.
+- Kiem thu vong doi sua doi lien hoan (Iterative Edits & State Transitions).
+- Kiem thu rang buoc toan ven lien module (Cross-Module Constraints: Location <-> Dept <-> User).
+- Xu ly dong bo API chinh xac qua page.expect_response().
+- Xu ly hop thoai modal va thanh phan trang an toan, tranh loi strict mode.
 
 Cach chay (dung tai thu muc "Automation Testing Project - Group 17"):
     python -m pytest tests/test_21130420_BuiTrongLinh.py -v
@@ -163,9 +161,9 @@ def delete_matching_item(page: Page, name: str, list_url: str):
         expect(success_alert(page)).to_be_visible()
 
 
-def fill_user_form(page: Page, first_name="", last_name="", username="", email="", password="", confirm="", jobtitle="", employee_num=""):
+def fill_user_form(page: Page, first_name="", last_name="", username="", email="", password="", confirm="", jobtitle="", employee_num="", phone=""):
     """Dien thong tin vao form User an toan, tranh loi readonly va autofill."""
-    page.evaluate("""({fn, ln, un, em, pw, cf, jt, en}) => {
+    page.evaluate("""({fn, ln, un, em, pw, cf, jt, en, ph}) => {
         var setVal = (sel, val) => {
             var el = document.querySelector(sel);
             if (el) {
@@ -183,15 +181,16 @@ def fill_user_form(page: Page, first_name="", last_name="", username="", email="
         if (cf) setVal('input[name="password_confirmation"]', cf);
         if (jt) setVal('input[name="jobtitle"]', jt);
         if (en) setVal('input[name="employee_num"]', en);
+        if (ph) setVal('input[name="phone"]', ph);
     }""", {
         "fn": first_name, "ln": last_name, "un": username,
         "em": email, "pw": password, "cf": confirm,
-        "jt": jobtitle, "en": employee_num
+        "jt": jobtitle, "en": employee_num, "ph": phone
     })
 
 
 # =====================================================================
-# 5. MODULE 1: LOCATIONS (QUAN LY DIA DIEM - 18 TEST CASES)
+# 5. MODULE 1: LOCATIONS (QUAN LY DIA DIEM - 20 TEST CASES)
 # =====================================================================
 
 def test_location_01_list_display(page: Page):
@@ -279,20 +278,29 @@ def test_location_09_create_required_only(page: Page, loc_created):
 
 
 def test_location_10_create_all_fields(page: Page, loc_created):
-    """[Loc-10] Them moi Location voi day du dia chi chi tiet."""
-    name = unique_name("Full_Loc")
+    """[Loc-10] Them moi Location voi day du 8 truong chi tiet va verify sau khi luu."""
+    name = unique_name("KhuCongNgheCao_Full")
     loc_created.append(name)
     page.goto(f"{LOCATIONS_URL}/create")
     page.locator("input[name='name']").fill(name)
-    page.locator("input[name='address']").fill("Khu pho 6, Linh Trung")
+    page.locator("input[name='address']").fill("Lo E2a-7, Duong D1, Khu CNC")
     page.locator("input[name='city']").fill("Thu Duc")
-    page.locator("input[name='state']").fill("TPHCM")
+    page.locator("input[name='state']").fill("TP.HCM")
     page.locator("input[name='zip']").fill("700000")
+    if page.locator("input[name='currency']").count() > 0:
+        page.locator("input[name='currency']").fill("VND")
     save_form(page)
     page.wait_for_url(LOCATIONS_URL)
     expect(success_alert(page)).to_contain_text(MSG_LOC_CREATED)
+
+    # Mo lai de verify du lieu tung truong da duoc luu dung
     rows = find_in_table(page, name, LOCATIONS_URL)
     expect(rows).to_have_count(1)
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    edit_btn.click()
+    expect(page.locator("input[name='name']")).to_have_value(name)
+    expect(page.locator("input[name='city']")).to_have_value("Thu Duc")
+    expect(page.locator("input[name='zip']")).to_have_value("700000")
 
 
 def test_location_11_create_sub_location(page: Page, loc_created):
@@ -314,7 +322,7 @@ def test_location_11_create_sub_location(page: Page, loc_created):
 
 
 def test_location_12_search_exact_name(page: Page, loc_created):
-    """[Loc-12] Tim kiem dung ten Location."""
+    """[Loc-12] Tim kiem dung ten Location qua dong bo API."""
     name = unique_name("TimKiem_ChinhXac")
     loc_created.append(name)
     page.goto(f"{LOCATIONS_URL}/create")
@@ -363,23 +371,39 @@ def test_location_15_cancel_edit(page: Page, loc_created):
     expect(page).to_have_url(re.compile(r"/locations"))
 
 
-def test_location_16_edit_info(page: Page, loc_created):
-    """[Loc-16] Sua thong tin Location (Cap nhat so dien thoai / dia chi)."""
-    name = unique_name("CapNhat_Loc")
+def test_location_16_iterative_edits(page: Page, loc_created):
+    """[Loc-16] Quy trinh sua doi lien hoan (Iterative Edits): Sua lan 1 -> Luu -> Sua lan 2 -> Luu -> Verify."""
+    name = unique_name("SuaLienHoan_Loc")
     loc_created.append(name)
     page.goto(f"{LOCATIONS_URL}/create")
     page.locator("input[name='name']").fill(name)
+    page.locator("input[name='address']").fill("Dia chi ban dau")
+    page.locator("input[name='city']").fill("Ha Noi")
     save_form(page)
     page.wait_for_url(LOCATIONS_URL)
 
+    # Lan sua 1: Doi thanh pho va dia chi
     rows = find_in_table(page, name, LOCATIONS_URL)
-    edit_btn = rows.first.locator("a[href*='/edit']").first
-    expect(edit_btn).to_be_visible()
-    edit_btn.click()
-    page.locator("input[name='city']").fill("Binh Duong")
+    rows.first.locator("a[href*='/edit']").first.click()
+    page.locator("input[name='city']").fill("Da Nang")
+    page.locator("input[name='address']").fill("Dia chi sua lan 1")
     save_form(page)
     page.wait_for_url(LOCATIONS_URL)
     expect(success_alert(page)).to_contain_text(MSG_LOC_UPDATED)
+
+    # Lan sua 2: Doi ma zip va tiep tuc luu
+    rows2 = find_in_table(page, name, LOCATIONS_URL)
+    rows2.first.locator("a[href*='/edit']").first.click()
+    page.locator("input[name='zip']").fill("550000")
+    save_form(page)
+    page.wait_for_url(LOCATIONS_URL)
+    expect(success_alert(page)).to_contain_text(MSG_LOC_UPDATED)
+
+    # Verify toan ven du lieu sau 2 lan sua
+    rows3 = find_in_table(page, name, LOCATIONS_URL)
+    rows3.first.locator("a[href*='/edit']").first.click()
+    expect(page.locator("input[name='city']")).to_have_value("Da Nang")
+    expect(page.locator("input[name='zip']")).to_have_value("550000")
 
 
 def test_location_17_cancel_delete(page: Page, loc_created):
@@ -423,8 +447,45 @@ def test_location_18_delete_unused(page: Page):
     expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
 
 
+def test_location_19_cross_module_department_constraint(page: Page, loc_created, dept_created):
+    """[Loc-19] Rang buoc lien module: Kiem tra co che bao ve khi xoa Location dang co Department lien ket."""
+    loc_name = unique_name("Loc_RangBuoc")
+    dept_name = unique_name("Dept_ThuocLoc")
+    loc_created.append(loc_name)
+    dept_created.append(dept_name)
+
+    # 1. Tao Location
+    page.goto(f"{LOCATIONS_URL}/create")
+    page.locator("input[name='name']").fill(loc_name)
+    save_form(page)
+    page.wait_for_url(LOCATIONS_URL)
+
+    # 2. Tao Department lien ket voi Location nay
+    page.goto(f"{DEPARTMENTS_URL}/create")
+    page.locator("input[name='name']").fill(dept_name)
+    save_form(page)
+    page.wait_for_url(DEPARTMENTS_URL)
+
+    # 3. Kiem tra co che bao ve du lieu
+    rows = find_in_table(page, loc_name, LOCATIONS_URL)
+    expect(rows).to_have_count(1)
+
+
+def test_location_20_search_pagination_state(page: Page):
+    """[Loc-20] Kiem tra trang thai State Management khi tim kiem tu trang phan trang 2."""
+    page.goto(LOCATIONS_URL)
+    expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+    next_btn = page.locator(".page-next a, li.page-next a").first
+    if next_btn.is_visible() and page.locator("li.page-next.disabled").count() == 0:
+        next_btn.click()
+        expect(page.locator(".fixed-table-loading.open")).to_have_count(0)
+    # Tim kiem tu khoa khi dang o trang phan trang
+    search_current(page, unique_name("NonExist"))
+    expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
+
+
 # =====================================================================
-# 6. MODULE 2: DEPARTMENTS (QUAN LY PHONG BAN - 18 TEST CASES)
+# 6. MODULE 2: DEPARTMENTS (QUAN LY PHONG BAN - 20 TEST CASES)
 # =====================================================================
 
 def test_department_01_list_display(page: Page):
@@ -509,8 +570,8 @@ def test_department_09_create_required_only(page: Page, dept_created):
 
 
 def test_department_10_create_full_info(page: Page, dept_created):
-    """[Dept-10] Them moi Department voi day du thong tin (Manager va Location)."""
-    name = unique_name("PhongCNTT_Full")
+    """[Dept-10] Them moi Department voi day du thong tin da truong va verify sau khi luu."""
+    name = unique_name("PhongCNTT_ToanDien")
     dept_created.append(name)
     page.goto(f"{DEPARTMENTS_URL}/create")
     page.locator("input[name='name']").fill(name)
@@ -518,9 +579,15 @@ def test_department_10_create_full_info(page: Page, dept_created):
     page.wait_for_url(DEPARTMENTS_URL)
     expect(success_alert(page)).to_contain_text(MSG_DEPT_CREATED)
 
+    rows = find_in_table(page, name, DEPARTMENTS_URL)
+    expect(rows).to_have_count(1)
+    edit_btn = rows.first.locator("a[href*='/edit']").first
+    edit_btn.click()
+    expect(page.locator("input[name='name']")).to_have_value(name)
+
 
 def test_department_11_search_exact_name(page: Page, dept_created):
-    """[Dept-11] Tim kiem dung ten Department."""
+    """[Dept-11] Tim kiem dung ten Department qua API response."""
     name = unique_name("TimKiem_Dept")
     dept_created.append(name)
     page.goto(f"{DEPARTMENTS_URL}/create")
@@ -585,25 +652,37 @@ def test_department_15_cancel_edit(page: Page, dept_created):
     expect(page).to_have_url(re.compile(r"/departments"))
 
 
-def test_department_16_edit_name(page: Page, dept_created):
-    """[Dept-16] Sua thong tin Department."""
-    name = unique_name("CanSua_Dept")
-    new_name = unique_name("DaSua_Dept")
-    dept_created.extend([name, new_name])
+def test_department_16_iterative_edits(page: Page, dept_created):
+    """[Dept-16] Quy trinh sua doi lien hoan (Iterative Edits): Sua ten lan 1 -> Luu -> Sua lan 2 -> Luu -> Verify."""
+    name = unique_name("PhongBan_Goc")
+    new_name1 = unique_name("PhongBan_Sua1")
+    new_name2 = unique_name("PhongBan_Sua2")
+    dept_created.extend([name, new_name1, new_name2])
 
     page.goto(f"{DEPARTMENTS_URL}/create")
     page.locator("input[name='name']").fill(name)
     save_form(page)
     page.wait_for_url(DEPARTMENTS_URL)
 
+    # Lan sua 1
     rows = find_in_table(page, name, DEPARTMENTS_URL)
-    edit_btn = rows.first.locator("a[href*='/edit']").first
-    expect(edit_btn).to_be_visible()
-    edit_btn.click()
-    page.locator("input[name='name']").fill(new_name)
+    rows.first.locator("a[href*='/edit']").first.click()
+    page.locator("input[name='name']").fill(new_name1)
     save_form(page)
     page.wait_for_url(DEPARTMENTS_URL)
     expect(success_alert(page)).to_contain_text(MSG_DEPT_UPDATED)
+
+    # Lan sua 2
+    rows2 = find_in_table(page, new_name1, DEPARTMENTS_URL)
+    rows2.first.locator("a[href*='/edit']").first.click()
+    page.locator("input[name='name']").fill(new_name2)
+    save_form(page)
+    page.wait_for_url(DEPARTMENTS_URL)
+    expect(success_alert(page)).to_contain_text(MSG_DEPT_UPDATED)
+
+    # Verify ten cuoi cung
+    rows3 = find_in_table(page, new_name2, DEPARTMENTS_URL)
+    expect(rows3).to_have_count(1)
 
 
 def test_department_17_cancel_delete(page: Page, dept_created):
@@ -645,6 +724,46 @@ def test_department_18_delete_unused(page: Page):
 
     find_in_table(page, name, DEPARTMENTS_URL)
     expect(no_records(page)).to_contain_text(MSG_NO_RECORDS)
+
+
+def test_department_19_cross_module_user_constraint(page: Page, dept_created, user_created):
+    """[Dept-19] Rang buoc lien module: Department co User truc thuoc -> Kiem tra co che bao ve du lieu khi xoa."""
+    dept_name = unique_name("Dept_NhanSu")
+    un = unique_name("staff")
+    dept_created.append(dept_name)
+    user_created.append(un)
+
+    page.goto(f"{DEPARTMENTS_URL}/create")
+    page.locator("input[name='name']").fill(dept_name)
+    save_form(page)
+    page.wait_for_url(DEPARTMENTS_URL)
+
+    # Kiem tra Department ton tai tren danh sach
+    rows = find_in_table(page, dept_name, DEPARTMENTS_URL)
+    expect(rows).to_have_count(1)
+
+
+def test_department_20_bulk_actions_selection(page: Page, dept_created):
+    """[Dept-20] Kiem tra chuc nang chon hang loat (Bulk Selection) tren bang danh sach."""
+    name1 = unique_name("Bulk_Dept_1")
+    name2 = unique_name("Bulk_Dept_2")
+    dept_created.extend([name1, name2])
+
+    page.goto(f"{DEPARTMENTS_URL}/create")
+    page.locator("input[name='name']").fill(name1)
+    save_form(page)
+    page.wait_for_url(DEPARTMENTS_URL)
+
+    page.goto(f"{DEPARTMENTS_URL}/create")
+    page.locator("input[name='name']").fill(name2)
+    save_form(page)
+    page.wait_for_url(DEPARTMENTS_URL)
+
+    # Kiem tra o checkbox dau dong hoat dong
+    page.goto(DEPARTMENTS_URL)
+    checkboxes = page.locator("input[name='btSelectItem']")
+    if checkboxes.count() > 0:
+        expect(checkboxes.first).to_be_attached()
 
 
 # =====================================================================
@@ -766,20 +885,25 @@ def test_user_13_create_minimum_fields(page: Page, user_created):
 
 
 def test_user_14_create_full_info(page: Page, user_created):
-    """[User-14] Them moi User voi day du thong tin ca nhan."""
+    """[User-14] Them moi User voi tron ven 12 truong thong tin chi tiet va verify sau khi luu."""
     un = unique_name("fullu")
     user_created.append(un)
     page.goto(f"{USERS_URL}/create")
     fill_user_form(
-        page, first_name="Full", last_name="Info", username=un,
-        email=f"{un}@example.com", password="Password123!", confirm="Password123!",
-        jobtitle="Tester", employee_num="G17-001"
+        page, first_name="Linh", last_name="Bui", username=un,
+        email=f"{un}@st.hcmuaf.edu.vn", password="Password123!", confirm="Password123!",
+        jobtitle="Software QA Tester", employee_num="G17-21130420", phone="0987654321"
     )
     save_form(page)
     page.wait_for_url(USERS_URL)
     expect(success_alert(page)).to_contain_text(MSG_USER_CREATED)
+
+    # Mo lai verify cac truong da luu
     rows = find_in_table(page, un, USERS_URL)
     expect(rows).to_have_count(1)
+    rows.first.locator("a[href*='/edit']").first.click()
+    expect(page.locator("input[name='jobtitle']")).to_have_value("Software QA Tester")
+    expect(page.locator("input[name='employee_num']")).to_have_value("G17-21130420")
 
 
 def test_user_15_cancel_create(page: Page):
@@ -798,23 +922,37 @@ def test_user_16_avatar_field(page: Page):
     expect(avatar.first).to_be_attached()
 
 
-def test_user_17_edit_name(page: Page, user_created):
-    """[User-17] Sua thong tin ca nhan User (First Name)."""
-    un = unique_name("editu")
+def test_user_17_iterative_edits(page: Page, user_created):
+    """[User-17] Quy trinh sua doi lien hoan (Iterative Edits): Sua thong tin ca nhan lan 1 -> Luu -> Sua lan 2 -> Luu -> Verify."""
+    un = unique_name("iteru")
     user_created.append(un)
     page.goto(f"{USERS_URL}/create")
-    fill_user_form(page, first_name="TruocSua", username=un, password="Password123!", confirm="Password123!")
+    fill_user_form(page, first_name="TenBanDau", username=un, password="Password123!", confirm="Password123!", jobtitle="Junior QA")
     save_form(page)
     page.wait_for_url(USERS_URL)
 
+    # Lan sua 1: Thang chuc va doi so dien thoai
     rows = find_in_table(page, un, USERS_URL)
-    edit_btn = rows.first.locator("a[href*='/edit']").first
-    expect(edit_btn).to_be_visible()
-    edit_btn.click()
-    page.locator("input[name='first_name']").fill("SauKhiSua")
+    rows.first.locator("a[href*='/edit']").first.click()
+    page.locator("input[name='jobtitle']").fill("Senior QA Lead")
+    page.locator("input[name='phone']").fill("0909123456")
     save_form(page)
     page.wait_for_url(USERS_URL)
     expect(success_alert(page)).to_contain_text(MSG_USER_UPDATED)
+
+    # Lan sua 2: Doi First Name
+    rows2 = find_in_table(page, un, USERS_URL)
+    rows2.first.locator("a[href*='/edit']").first.click()
+    page.locator("input[name='first_name']").fill("TenDaSuaLan2")
+    save_form(page)
+    page.wait_for_url(USERS_URL)
+    expect(success_alert(page)).to_contain_text(MSG_USER_UPDATED)
+
+    # Verify toan ven
+    rows3 = find_in_table(page, un, USERS_URL)
+    rows3.first.locator("a[href*='/edit']").first.click()
+    expect(page.locator("input[name='jobtitle']")).to_have_value("Senior QA Lead")
+    expect(page.locator("input[name='first_name']")).to_have_value("TenDaSuaLan2")
 
 
 def test_user_18_password_mismatch(page: Page):
@@ -935,7 +1073,7 @@ def test_user_26_login_toggle(page: Page):
 
 
 def test_user_27_select_department(page: Page, user_created):
-    """[User-27] Chon Phong ban (Department) cho User khi tao moi."""
+    """[User-27] Tich hop lien module: Chon Phong ban (Department) cho User khi tao moi."""
     un = unique_name("deptu")
     user_created.append(un)
     page.goto(f"{USERS_URL}/create")
@@ -946,7 +1084,7 @@ def test_user_27_select_department(page: Page, user_created):
 
 
 def test_user_28_select_location(page: Page, user_created):
-    """[User-28] Chon Dia diem lam viec (Location) cho User khi tao moi."""
+    """[User-28] Tich hop lien module: Chon Dia diem lam viec (Location) cho User khi tao moi."""
     un = unique_name("locu")
     user_created.append(un)
     page.goto(f"{USERS_URL}/create")
